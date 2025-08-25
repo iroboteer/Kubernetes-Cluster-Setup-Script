@@ -1,8 +1,34 @@
 # 快速开始指南
 
-## 解决 "kubeadm: command not found" 错误
+## 解决常见安装问题
+
+### 问题1: "kubeadm: command not found" 错误
 
 您遇到的错误是因为系统还没有安装Kubernetes组件。请按以下步骤操作：
+
+### 问题2: "setenforce: SELinux is disabled" 错误
+
+如果遇到SELinux相关的错误，请运行快速修复脚本：
+
+```bash
+# 运行快速修复脚本
+./quick-fix.sh
+```
+
+或者手动修复：
+
+```bash
+# 安全地处理SELinux
+if command -v setenforce &> /dev/null; then
+    setenforce 0 2>/dev/null || echo "SELinux已经是禁用状态"
+fi
+
+# 修改配置文件
+if [ -f /etc/selinux/config ]; then
+    sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+    sed -i 's/^SELINUX=disabled$/SELINUX=permissive/' /etc/selinux/config
+fi
+```
 
 ### 方法1: 使用诊断脚本（推荐）
 

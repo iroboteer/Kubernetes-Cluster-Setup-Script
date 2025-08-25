@@ -27,18 +27,48 @@ fi
 
 # 1. 关闭防火墙
 echo "1. 关闭防火墙..."
-systemctl stop firewalld
-systemctl disable firewalld
+if systemctl list-unit-files | grep -q firewalld; then
+    systemctl stop firewalld 2>/dev/null || echo "firewalld服务未运行"
+    systemctl disable firewalld 2>/dev/null || echo "firewalld服务未启用"
+    echo "防火墙已关闭"
+else
+    echo "firewalld服务未安装"
+fi
 
 # 2. 禁用SELinux
 echo "2. 禁用SELinux..."
-setenforce 0
-sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+# 检查SELinux状态并安全地禁用它
+if command -v setenforce &> /dev/null; then
+    setenforce 0 2>/dev/null || echo "SELinux已经是禁用状态或无法设置"
+else
+    echo "setenforce命令不可用，SELinux可能未安装"
+fi
+
+# 修改SELinux配置文件
+if [ -f /etc/selinux/config ]; then
+    sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+    sed -i 's/^SELINUX=disabled$/SELINUX=permissive/' /etc/selinux/config
+    echo "SELinux配置已更新为permissive模式"
+else
+    echo "SELinux配置文件不存在"
+fi
 
 # 3. 关闭swap
 echo "3. 关闭swap..."
-swapoff -a
-sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+if swapon --show | grep -q .; then
+    swapoff -a
+    echo "已关闭所有swap分区"
+else
+    echo "没有活动的swap分区"
+fi
+
+# 注释掉fstab中的swap条目
+if [ -f /etc/fstab ]; then
+    sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+    echo "已注释掉fstab中的swap条目"
+else
+    echo "fstab文件不存在"
+fi
 
 # 4. 配置内核参数
 echo "4. 配置内核参数..."
@@ -89,21 +119,48 @@ EOF
 
 # 7. 安装Docker
 echo "7. 安装Docker..."
-yum install -y yum-utils
-yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
-yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# 检查Docker是否已安装
+if command -v docker &> /dev/null; then
+    echo "Docker已安装: $(docker --version)"
+else
+    echo "安装Docker..."
+    yum install -y yum-utils
+    yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+    yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+fi
 
 # 启动Docker
+echo "启动Docker服务..."
 systemctl daemon-reload
 systemctl enable docker
 systemctl start docker
 
+# 验证Docker是否正常运行
+if systemctl is-active --quiet docker; then
+    echo "Docker服务已启动"
+else
+    echo "警告: Docker服务启动失败"
+    systemctl status docker --no-pager -l
+fi
+
 # 8. 安装kubeadm, kubelet, kubectl
 echo "8. 安装Kubernetes组件..."
-yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+# 检查Kubernetes组件是否已安装
+if command -v kubeadm &> /dev/null && command -v kubectl &> /dev/null && command -v kubelet &> /dev/null; then
+    echo "Kubernetes组件已安装:"
+    echo "  kubeadm: $(kubeadm version --short)"
+    echo "  kubectl: $(kubectl version --client --short)"
+    echo "  kubelet: $(kubelet --version)"
+else
+    echo "安装Kubernetes组件..."
+    yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+fi
 
 # 启用kubelet
+echo "启用kubelet服务..."
 systemctl enable kubelet
+
+echo "Kubernetes组件安装完成"
 
 echo "=========================================="
 echo "系统环境准备完成！"
