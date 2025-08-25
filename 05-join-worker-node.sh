@@ -21,6 +21,18 @@ if ! command -v kubeadm &> /dev/null; then
     exit 1
 fi
 
+# 检查containerd是否已安装并运行
+if ! command -v containerd &> /dev/null; then
+    echo "错误: containerd未找到，请先运行 01-prepare-system.sh"
+    exit 1
+fi
+
+if ! systemctl is-active --quiet containerd; then
+    echo "错误: containerd服务未运行，请先启动containerd"
+    echo "运行命令: systemctl start containerd"
+    exit 1
+fi
+
 # 检查是否已经加入集群
 if [ -f /etc/kubernetes/kubelet.conf ]; then
     echo "警告: 此节点似乎已经加入了Kubernetes集群"

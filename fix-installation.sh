@@ -48,21 +48,21 @@ else
     echo "需要运行: ./01-prepare-system.sh"
 fi
 
-# 检查Docker
+# 检查containerd
 echo ""
-echo "3. 检查Docker..."
-if command -v docker &> /dev/null; then
-    echo "✓ Docker已安装: $(docker --version)"
-    if systemctl is-active --quiet docker; then
-        echo "✓ Docker服务正在运行"
+echo "3. 检查containerd..."
+if command -v containerd &> /dev/null; then
+    echo "✓ containerd已安装: $(containerd --version)"
+    if systemctl is-active --quiet containerd; then
+        echo "✓ containerd服务正在运行"
     else
-        echo "✗ Docker服务未运行"
-        echo "尝试启动Docker..."
-        systemctl start docker
-        systemctl enable docker
+        echo "✗ containerd服务未运行"
+        echo "尝试启动containerd..."
+        systemctl start containerd
+        systemctl enable containerd
     fi
 else
-    echo "✗ Docker未安装"
+    echo "✗ containerd未安装"
     echo "需要运行: ./01-prepare-system.sh"
 fi
 

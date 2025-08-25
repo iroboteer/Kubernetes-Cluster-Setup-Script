@@ -22,6 +22,19 @@ if ! command -v kubeadm &> /dev/null; then
     exit 1
 fi
 
+# 检查containerd是否已安装并运行
+if ! command -v containerd &> /dev/null; then
+    echo "错误: containerd未找到，请先运行系统环境准备脚本"
+    echo "运行命令: ./01-prepare-system.sh"
+    exit 1
+fi
+
+if ! systemctl is-active --quiet containerd; then
+    echo "错误: containerd服务未运行，请先启动containerd"
+    echo "运行命令: systemctl start containerd"
+    exit 1
+fi
+
 # 获取本机IP地址
 MASTER_IP=$(hostname -I | awk '{print $1}')
 echo "检测到本机IP: $MASTER_IP"

@@ -101,62 +101,76 @@ EOF
 yum clean all
 yum makecache
 
-# 6. 配置Docker镜像源
-echo "6. 配置Docker镜像源..."
-mkdir -p /etc/docker
-cat > /etc/docker/daemon.json << EOF
-{
-  "registry-mirrors": [
-    "https://docker.mirrors.ustc.edu.cn",
-    "https://hub-mirror.c.163.com",
-    "https://mirror.baidubce.com"
-  ],
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m"
-  },
-  "storage-driver": "overlay2"
-}
+# 6. 配置containerd
+echo "6. 配置containerd..."
+mkdir -p /etc/containerd
+cat > /etc/containerd/config.toml << EOF
+version = 2
+root = "/var/lib/containerd"
+state = "/run/containerd"
+
+[grpc]
+  address = "/run/containerd/containerd.sock"
+  uid = 0
+  gid = 0
+
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+    sandbox_image = "registry.aliyuncs.com/google_containers/pause:3.9"
+    [plugins."io.containerd.grpc.v1.cri".containerd]
+      snapshotter = "overlayfs"
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+          runtime_type = "io.containerd.runc.v2"
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            SystemdCgroup = true
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+          endpoint = ["https://docker.mirrors.ustc.edu.cn", "https://hub-mirror.c.163.com", "https://mirror.baidubce.com"]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]
+          endpoint = ["https://registry.aliyuncs.com/google_containers"]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."registry.k8s.io"]
+          endpoint = ["https://registry.aliyuncs.com/google_containers"]
 EOF
 
-# 7. 安装Docker
-echo "7. 安装Docker..."
-# 检查Docker是否已安装
-if command -v docker &> /dev/null; then
-    echo "Docker已安装: $(docker --version)"
+# 7. 安装containerd
+echo "7. 安装containerd..."
+# 检查containerd是否已安装
+if command -v containerd &> /dev/null; then
+    echo "containerd已安装: $(containerd --version)"
 else
-    echo "安装Docker..."
-    yum install -y yum-utils
+    echo "安装containerd..."
+    yum install -y containerd.io
     
-    # 配置Docker yum源
-    yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
-    
-    # 清理并重建缓存
-    yum clean all
-    yum makecache
-    
-    # 安装Docker
-    yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
-        echo "Docker安装失败，尝试使用备用源..."
-        # 备用安装方法
-        curl -fsSL https://get.docker.com | sh
-    }
+    # 如果yum安装失败，尝试备用方法
+    if ! command -v containerd &> /dev/null; then
+        echo "yum安装失败，尝试备用安装方法..."
+        # 下载containerd二进制文件
+        CONTAINERD_VERSION="1.7.0"
+        curl -LO "https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz"
+        tar xvf containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
+        cp bin/* /usr/local/bin/
+        rm -rf bin containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
+    fi
 fi
 
-# 启动Docker
-echo "启动Docker服务..."
+# 启动containerd
+echo "启动containerd服务..."
 systemctl daemon-reload
-systemctl enable docker
-systemctl start docker
+systemctl enable containerd
+systemctl start containerd
 
-# 验证Docker是否正常运行
-if systemctl is-active --quiet docker; then
-    echo "Docker服务已启动"
+# 验证containerd是否正常运行
+if systemctl is-active --quiet containerd; then
+    echo "containerd服务已启动"
 else
-    echo "警告: Docker服务启动失败"
-    systemctl status docker --no-pager -l
+    echo "警告: containerd服务启动失败"
+    systemctl status containerd --no-pager -l
 fi
+
+# 重启containerd以应用新配置
+systemctl restart containerd
 
 # 8. 安装kubeadm, kubelet, kubectl
 echo "8. 安装Kubernetes组件..."

@@ -220,7 +220,7 @@ kubectl logs <pod-name> -n <namespace>
 
 脚本已配置以下镜像源：
 - Kubernetes: 阿里云镜像源
-- Docker: 阿里云、中科大、网易、百度镜像源
+- containerd: 阿里云、中科大、网易、百度镜像源
 
 ### 系统配置
 
@@ -242,7 +242,7 @@ kubectl logs <pod-name> -n <namespace>
 - Kubernetes版本: v1.28.0
 - Calico版本: v3.26.1
 - Dashboard版本: v2.7.0
-- Docker版本: 最新稳定版
+- containerd版本: v1.7.0
 
 ## 支持
 

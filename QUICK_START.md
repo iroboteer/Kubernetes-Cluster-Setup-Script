@@ -51,6 +51,21 @@ yum clean all
 yum makecache
 ```
 
+### 问题4: containerd相关问题
+
+如果遇到containerd相关的问题：
+
+```bash
+# 检查containerd状态
+systemctl status containerd
+
+# 重启containerd
+systemctl restart containerd
+
+# 检查containerd配置
+cat /etc/containerd/config.toml
+```
+
 ### 方法1: 使用诊断脚本（推荐）
 
 ```bash

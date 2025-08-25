@@ -74,6 +74,10 @@ echo "防火墙状态:"
 systemctl status firewalld --no-pager -l 2>/dev/null || echo "firewalld未安装或未运行"
 
 echo ""
+echo "containerd状态:"
+systemctl status containerd --no-pager -l 2>/dev/null || echo "containerd未安装或未运行"
+
+echo ""
 echo "swap状态:"
 swapon --show || echo "没有活动的swap分区"
 
