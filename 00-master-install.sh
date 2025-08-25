@@ -28,7 +28,8 @@ show_menu() {
     echo "6. 一键安装完整集群 (主节点)"
     echo "7. 清除Kubernetes集群"
     echo "8. 查看集群状态"
-    echo "9. 退出"
+    echo "9. 诊断和修复安装问题"
+    echo "10. 退出"
     echo ""
 }
 
@@ -150,12 +151,19 @@ show_cluster_status() {
     fi
 }
 
+# 诊断和修复
+diagnose_and_fix() {
+    echo "诊断和修复安装问题..."
+    chmod +x fix-installation.sh
+    ./fix-installation.sh
+}
+
 # 主循环
 while true; do
     show_menu
-    read -p "请输入选项 (1-9): " choice
+    read -p "请输入选项 (1-10): " choice
     
-    case $choice in
+            case $choice in
         1)
             prepare_system
             ;;
@@ -181,6 +189,9 @@ while true; do
             show_cluster_status
             ;;
         9)
+            diagnose_and_fix
+            ;;
+        10)
             echo "退出脚本"
             exit 0
             ;;

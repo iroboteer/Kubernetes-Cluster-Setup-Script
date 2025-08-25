@@ -18,6 +18,7 @@ fi
 # 检查kubectl是否可用
 if ! command -v kubectl &> /dev/null; then
     echo "错误: kubectl未找到，请先安装控制平面"
+    echo "运行命令: ./02-install-control-plane.sh"
     exit 1
 fi
 

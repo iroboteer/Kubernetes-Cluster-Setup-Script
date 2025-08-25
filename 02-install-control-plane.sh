@@ -15,6 +15,13 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+# 检查kubeadm是否已安装
+if ! command -v kubeadm &> /dev/null; then
+    echo "错误: kubeadm未找到，请先运行系统环境准备脚本"
+    echo "运行命令: ./01-prepare-system.sh"
+    exit 1
+fi
+
 # 获取本机IP地址
 MASTER_IP=$(hostname -I | awk '{print $1}')
 echo "检测到本机IP: $MASTER_IP"
