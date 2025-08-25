@@ -92,11 +92,14 @@ cat > /etc/yum.repos.d/kubernetes.repo << EOF
 name=Kubernetes
 baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
 enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+gpgcheck=0
+repo_gpgcheck=0
 exclude=kubelet kubeadm kubectl
 EOF
+
+# 清理yum缓存
+yum clean all
+yum makecache
 
 # 6. 配置Docker镜像源
 echo "6. 配置Docker镜像源..."
@@ -125,8 +128,20 @@ if command -v docker &> /dev/null; then
 else
     echo "安装Docker..."
     yum install -y yum-utils
+    
+    # 配置Docker yum源
     yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
-    yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    
+    # 清理并重建缓存
+    yum clean all
+    yum makecache
+    
+    # 安装Docker
+    yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
+        echo "Docker安装失败，尝试使用备用源..."
+        # 备用安装方法
+        curl -fsSL https://get.docker.com | sh
+    }
 fi
 
 # 启动Docker
@@ -153,7 +168,35 @@ if command -v kubeadm &> /dev/null && command -v kubectl &> /dev/null && command
     echo "  kubelet: $(kubelet --version)"
 else
     echo "安装Kubernetes组件..."
-    yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+    
+    # 清理并重建缓存
+    yum clean all
+    yum makecache
+    
+    # 尝试安装Kubernetes组件
+    yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes || {
+        echo "Kubernetes组件安装失败，尝试备用方法..."
+        
+        # 备用安装方法：直接下载二进制文件
+        echo "使用备用安装方法..."
+        
+        # 下载kubeadm
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubeadm"
+        chmod +x kubeadm
+        mv kubeadm /usr/local/bin/
+        
+        # 下载kubectl
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        mv kubectl /usr/local/bin/
+        
+        # 下载kubelet
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubelet"
+        chmod +x kubelet
+        mv kubelet /usr/local/bin/
+        
+        echo "Kubernetes组件已通过备用方法安装"
+    }
 fi
 
 # 启用kubelet

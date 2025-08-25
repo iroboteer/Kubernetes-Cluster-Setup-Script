@@ -29,7 +29,8 @@ show_menu() {
     echo "7. 清除Kubernetes集群"
     echo "8. 查看集群状态"
     echo "9. 诊断和修复安装问题"
-    echo "10. 退出"
+    echo "10. 修复yum源问题"
+    echo "11. 退出"
     echo ""
 }
 
@@ -158,10 +159,17 @@ diagnose_and_fix() {
     ./fix-installation.sh
 }
 
+# 修复yum源
+fix_yum_repo() {
+    echo "修复yum源问题..."
+    chmod +x fix-yum-repo.sh
+    ./fix-yum-repo.sh
+}
+
 # 主循环
 while true; do
     show_menu
-    read -p "请输入选项 (1-10): " choice
+    read -p "请输入选项 (1-11): " choice
     
             case $choice in
         1)
@@ -192,6 +200,9 @@ while true; do
             diagnose_and_fix
             ;;
         10)
+            fix_yum_repo
+            ;;
+        11)
             echo "退出脚本"
             exit 0
             ;;

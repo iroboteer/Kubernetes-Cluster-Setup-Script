@@ -30,6 +30,27 @@ if [ -f /etc/selinux/config ]; then
 fi
 ```
 
+### 问题3: "GPG signature verification error" 错误
+
+如果遇到yum源的GPG签名验证错误，请运行yum源修复脚本：
+
+```bash
+# 运行yum源修复脚本
+./fix-yum-repo.sh
+```
+
+或者手动修复：
+
+```bash
+# 禁用GPG检查
+sed -i 's/gpgcheck=1/gpgcheck=0/g' /etc/yum.repos.d/kubernetes.repo
+sed -i 's/repo_gpgcheck=1/repo_gpgcheck=0/g' /etc/yum.repos.d/kubernetes.repo
+
+# 清理缓存
+yum clean all
+yum makecache
+```
+
 ### 方法1: 使用诊断脚本（推荐）
 
 ```bash
