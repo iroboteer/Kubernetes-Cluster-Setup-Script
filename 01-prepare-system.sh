@@ -213,6 +213,40 @@ else
     }
 fi
 
+# 检查并修复PATH问题
+echo "检查Kubernetes组件安装位置..."
+KUBEADM_PATH=$(which kubeadm 2>/dev/null || find /usr/bin /usr/local/bin /opt -name kubeadm 2>/dev/null | head -1)
+KUBECTL_PATH=$(which kubectl 2>/dev/null || find /usr/bin /usr/local/bin /opt -name kubectl 2>/dev/null | head -1)
+KUBELET_PATH=$(which kubelet 2>/dev/null || find /usr/bin /usr/local/bin /opt -name kubelet 2>/dev/null | head -1)
+
+if [ -n "$KUBEADM_PATH" ]; then
+    echo "✓ kubeadm找到: $KUBEADM_PATH"
+else
+    echo "✗ kubeadm未找到，尝试重新安装..."
+    # 强制重新安装
+    yum remove -y kubelet kubeadm kubectl 2>/dev/null || true
+    yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+fi
+
+if [ -n "$KUBECTL_PATH" ]; then
+    echo "✓ kubectl找到: $KUBECTL_PATH"
+else
+    echo "✗ kubectl未找到"
+fi
+
+if [ -n "$KUBELET_PATH" ]; then
+    echo "✓ kubelet找到: $KUBELET_PATH"
+else
+    echo "✗ kubelet未找到"
+fi
+
+# 确保PATH包含Kubernetes组件路径
+if ! echo "$PATH" | grep -q "/usr/bin"; then
+    echo "添加/usr/bin到PATH..."
+    export PATH="/usr/bin:$PATH"
+    echo 'export PATH="/usr/bin:$PATH"' >> /etc/profile
+fi
+
 # 启用kubelet
 echo "启用kubelet服务..."
 systemctl enable kubelet

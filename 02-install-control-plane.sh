@@ -16,7 +16,24 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # 检查kubeadm是否已安装
-if ! command -v kubeadm &> /dev/null; then
+check_kubeadm() {
+    # 首先尝试直接查找
+    if command -v kubeadm &> /dev/null; then
+        return 0
+    fi
+    
+    # 如果找不到，尝试在常见路径中查找
+    KUBEADM_PATH=$(find /usr/bin /usr/local/bin /opt -name kubeadm 2>/dev/null | head -1)
+    if [ -n "$KUBEADM_PATH" ]; then
+        echo "找到kubeadm: $KUBEADM_PATH"
+        export PATH="$(dirname $KUBEADM_PATH):$PATH"
+        return 0
+    fi
+    
+    return 1
+}
+
+if ! check_kubeadm; then
     echo "错误: kubeadm未找到"
     echo "正在自动运行系统环境准备脚本..."
     
@@ -24,14 +41,20 @@ if ! command -v kubeadm &> /dev/null; then
     if [ -f "01-prepare-system.sh" ]; then
         chmod +x 01-prepare-system.sh
         ./01-prepare-system.sh
+        
+        # 重新加载环境变量
+        source /etc/profile
+        
+        # 再次检查kubeadm
+        if ! check_kubeadm; then
+            echo "错误: 系统环境准备后仍无法找到kubeadm"
+            echo "尝试手动查找kubeadm..."
+            find / -name kubeadm 2>/dev/null | head -5
+            echo "请检查Kubernetes组件是否正确安装"
+            exit 1
+        fi
     else
         echo "错误: 01-prepare-system.sh 脚本不存在"
-        exit 1
-    fi
-    
-    # 再次检查kubeadm
-    if ! command -v kubeadm &> /dev/null; then
-        echo "错误: 系统环境准备后仍无法找到kubeadm"
         exit 1
     fi
 fi

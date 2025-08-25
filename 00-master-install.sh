@@ -30,7 +30,8 @@ show_menu() {
     echo "8. 查看集群状态"
     echo "9. 诊断和修复安装问题"
     echo "10. 修复yum源问题"
-    echo "11. 退出"
+    echo "11. 检查Kubernetes组件"
+    echo "12. 退出"
     echo ""
 }
 
@@ -227,10 +228,17 @@ fix_yum_repo() {
     ./fix-yum-repo.sh
 }
 
+# 检查Kubernetes组件
+check_k8s_components() {
+    echo "检查Kubernetes组件..."
+    chmod +x check-k8s-components.sh
+    ./check-k8s-components.sh
+}
+
 # 主循环
 while true; do
     show_menu
-    read -p "请输入选项 (1-11): " choice
+    read -p "请输入选项 (1-12): " choice
     
             case $choice in
         1)
@@ -264,6 +272,9 @@ while true; do
             fix_yum_repo
             ;;
         11)
+            check_k8s_components
+            ;;
+        12)
             echo "退出脚本"
             exit 0
             ;;
