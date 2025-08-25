@@ -94,7 +94,6 @@ baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
 enabled=1
 gpgcheck=0
 repo_gpgcheck=0
-exclude=kubelet kubeadm kubectl
 EOF
 
 # 清理yum缓存
@@ -188,7 +187,7 @@ else
     yum makecache
     
     # 尝试安装Kubernetes组件
-    yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes || {
+    yum install -y kubelet kubeadm kubectl || {
         echo "Kubernetes组件安装失败，尝试备用方法..."
         
         # 备用安装方法：直接下载二进制文件
@@ -225,7 +224,7 @@ else
     echo "✗ kubeadm未找到，尝试重新安装..."
     # 强制重新安装
     yum remove -y kubelet kubeadm kubectl 2>/dev/null || true
-    yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+    yum install -y kubelet kubeadm kubectl
 fi
 
 if [ -n "$KUBECTL_PATH" ]; then

@@ -31,7 +31,8 @@ show_menu() {
     echo "9. 诊断和修复安装问题"
     echo "10. 修复yum源问题"
     echo "11. 检查Kubernetes组件"
-    echo "12. 退出"
+    echo "12. 修复Kubernetes安装问题"
+    echo "13. 退出"
     echo ""
 }
 
@@ -235,10 +236,17 @@ check_k8s_components() {
     ./check-k8s-components.sh
 }
 
+# 修复Kubernetes安装问题
+fix_k8s_install() {
+    echo "修复Kubernetes安装问题..."
+    chmod +x fix-k8s-install.sh
+    ./fix-k8s-install.sh
+}
+
 # 主循环
 while true; do
     show_menu
-    read -p "请输入选项 (1-12): " choice
+    read -p "请输入选项 (1-13): " choice
     
             case $choice in
         1)
@@ -275,6 +283,9 @@ while true; do
             check_k8s_components
             ;;
         12)
+            fix_k8s_install
+            ;;
+        13)
             echo "退出脚本"
             exit 0
             ;;
