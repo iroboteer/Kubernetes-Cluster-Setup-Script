@@ -44,6 +44,13 @@ prepare_system() {
 # 安装控制平面
 install_control_plane() {
     echo "安装控制平面..."
+    
+    # 检查kubeadm是否已安装
+    if ! command -v kubeadm &> /dev/null; then
+        echo "检测到kubeadm未安装，自动运行系统环境准备..."
+        prepare_system
+    fi
+    
     chmod +x 02-install-control-plane.sh
     ./02-install-control-plane.sh
 }
@@ -51,6 +58,13 @@ install_control_plane() {
 # 安装Calico
 install_calico() {
     echo "安装Calico网络插件..."
+    
+    # 检查kubectl是否可用
+    if ! command -v kubectl &> /dev/null; then
+        echo "检测到kubectl未安装，请先安装控制平面..."
+        install_control_plane
+    fi
+    
     chmod +x 03-install-calico.sh
     ./03-install-calico.sh
 }
@@ -58,6 +72,13 @@ install_calico() {
 # 安装Dashboard
 install_dashboard() {
     echo "安装Kubernetes Dashboard..."
+    
+    # 检查kubectl是否可用
+    if ! command -v kubectl &> /dev/null; then
+        echo "检测到kubectl未安装，请先安装控制平面..."
+        install_control_plane
+    fi
+    
     chmod +x 04-install-dashboard.sh
     ./04-install-dashboard.sh
 }
@@ -65,6 +86,13 @@ install_dashboard() {
 # 工作节点加入
 join_worker() {
     echo "工作节点加入集群..."
+    
+    # 检查kubeadm是否已安装
+    if ! command -v kubeadm &> /dev/null; then
+        echo "检测到kubeadm未安装，自动运行系统环境准备..."
+        prepare_system
+    fi
+    
     chmod +x 05-join-worker-node.sh
     ./05-join-worker-node.sh
 }
@@ -90,32 +118,65 @@ install_full_cluster() {
     echo "开始一键安装..."
     echo "=========================================="
     
-    # 1. 系统准备
-    echo "步骤 1/4: 系统环境准备"
-    prepare_system
+    # 检查并安装依赖
+    check_and_install_dependencies() {
+        echo "检查系统依赖..."
+        
+        # 检查系统环境准备
+        if ! command -v kubeadm &> /dev/null; then
+            echo "步骤 1/4: 系统环境准备"
+            prepare_system
+        else
+            echo "✓ 系统环境已准备"
+        fi
+        
+        # 检查控制平面
+        if ! command -v kubectl &> /dev/null || [ ! -f /etc/kubernetes/admin.conf ]; then
+            echo "步骤 2/4: 安装控制平面"
+            install_control_plane
+        else
+            echo "✓ 控制平面已安装"
+        fi
+        
+        # 检查网络插件
+        if command -v kubectl &> /dev/null; then
+            export KUBECONFIG=/etc/kubernetes/admin.conf
+            if ! kubectl get pods -n calico-system &> /dev/null; then
+                echo "步骤 3/4: 安装Calico网络插件"
+                install_calico
+            else
+                echo "✓ Calico网络插件已安装"
+            fi
+        fi
+        
+        # 检查Dashboard
+        if command -v kubectl &> /dev/null; then
+            export KUBECONFIG=/etc/kubernetes/admin.conf
+            if ! kubectl get pods -n kubernetes-dashboard &> /dev/null; then
+                echo "步骤 4/4: 安装Kubernetes Dashboard"
+                install_dashboard
+            else
+                echo "✓ Kubernetes Dashboard已安装"
+            fi
+        fi
+    }
     
-    # 2. 安装控制平面
-    echo "步骤 2/4: 安装控制平面"
-    install_control_plane
-    
-    # 3. 安装Calico
-    echo "步骤 3/4: 安装Calico网络插件"
-    install_calico
-    
-    # 4. 安装Dashboard
-    echo "步骤 4/4: 安装Kubernetes Dashboard"
-    install_dashboard
+    # 执行依赖检查和安装
+    check_and_install_dependencies
     
     echo "=========================================="
     echo "Kubernetes集群安装完成！"
     echo "=========================================="
     echo ""
     echo "集群信息:"
-    kubectl get nodes
-    echo ""
-    echo "Dashboard访问信息:"
-    if [ -f "access-dashboard.sh" ]; then
-        ./access-dashboard.sh
+    if command -v kubectl &> /dev/null; then
+        export KUBECONFIG=/etc/kubernetes/admin.conf
+        kubectl get nodes
+        echo ""
+        echo "Dashboard访问信息:"
+        if [ -f "access-dashboard.sh" ]; then
+            ./access-dashboard.sh
+        fi
     fi
     echo ""
     echo "接下来可以在工作节点上运行:"

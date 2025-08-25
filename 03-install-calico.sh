@@ -17,9 +17,23 @@ fi
 
 # 检查kubectl是否可用
 if ! command -v kubectl &> /dev/null; then
-    echo "错误: kubectl未找到，请先安装控制平面"
-    echo "运行命令: ./02-install-control-plane.sh"
-    exit 1
+    echo "错误: kubectl未找到"
+    echo "正在自动运行控制平面安装脚本..."
+    
+    # 检查02-install-control-plane.sh是否存在
+    if [ -f "02-install-control-plane.sh" ]; then
+        chmod +x 02-install-control-plane.sh
+        ./02-install-control-plane.sh
+    else
+        echo "错误: 02-install-control-plane.sh 脚本不存在"
+        exit 1
+    fi
+    
+    # 再次检查kubectl
+    if ! command -v kubectl &> /dev/null; then
+        echo "错误: 控制平面安装后仍无法找到kubectl"
+        exit 1
+    fi
 fi
 
 # 检查集群状态

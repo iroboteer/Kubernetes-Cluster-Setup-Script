@@ -17,9 +17,23 @@ fi
 
 # 检查kubeadm是否已安装
 if ! command -v kubeadm &> /dev/null; then
-    echo "错误: kubeadm未找到，请先运行系统环境准备脚本"
-    echo "运行命令: ./01-prepare-system.sh"
-    exit 1
+    echo "错误: kubeadm未找到"
+    echo "正在自动运行系统环境准备脚本..."
+    
+    # 检查01-prepare-system.sh是否存在
+    if [ -f "01-prepare-system.sh" ]; then
+        chmod +x 01-prepare-system.sh
+        ./01-prepare-system.sh
+    else
+        echo "错误: 01-prepare-system.sh 脚本不存在"
+        exit 1
+    fi
+    
+    # 再次检查kubeadm
+    if ! command -v kubeadm &> /dev/null; then
+        echo "错误: 系统环境准备后仍无法找到kubeadm"
+        exit 1
+    fi
 fi
 
 # 检查containerd是否已安装并运行
