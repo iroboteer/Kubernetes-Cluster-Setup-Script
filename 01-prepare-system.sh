@@ -223,26 +223,15 @@ else
         dnf makecache
     fi
     
-    # 尝试安装Kubernetes 1.33版本
-    echo "尝试安装Kubernetes 1.33版本..."
-    INSTALL_SUCCESS=false
+    # 安装Kubernetes 1.33.4版本
+    echo "安装Kubernetes 1.33.4版本..."
     
-    # 尝试安装1.33.x版本（从1.33.0到1.33.9）
-    for version in 1.33.9 1.33.8 1.33.7 1.33.6 1.33.5 1.33.4 1.33.3 1.33.2 1.33.1 1.33.0; do
-        echo "尝试安装Kubernetes $version..."
-        
-        if dnf install -y kubelet-$version kubeadm-$version kubectl-$version 2>/dev/null; then
-            echo "✓ Kubernetes $version 安装成功"
-            INSTALLED_VERSION=$version
-            INSTALL_SUCCESS=true
-            break
-        else
-            echo "✗ Kubernetes $version 安装失败，尝试下一个版本..."
-        fi
-    done
-    
-    if [ "$INSTALL_SUCCESS" = false ]; then
-        echo "所有镜像源中都没有1.33.x版本，使用备用方法..."
+    # 尝试从镜像源安装1.33.4
+    if dnf install -y kubelet-1.33.4 kubeadm-1.33.4 kubectl-1.33.4 2>/dev/null; then
+        echo "✓ Kubernetes 1.33.4 从镜像源安装成功"
+        INSTALLED_VERSION="1.33.4"
+    else
+        echo "镜像源中没有1.33.4版本，使用备用方法下载..."
         
         # 备用方法：使用国内CDN下载
         echo "使用国内CDN下载Kubernetes 1.33.4..."
@@ -270,7 +259,6 @@ else
                 mv kubeadm kubectl kubelet /usr/local/bin/
                 
                 INSTALLED_VERSION="1.33.4"
-                INSTALL_SUCCESS=true
                 break
             else
                 echo "✗ 从 $cdn_url 下载失败，尝试下一个CDN..."
@@ -278,7 +266,7 @@ else
         done
         
         # 如果所有CDN都失败，使用官方源
-        if [ "$INSTALL_SUCCESS" = false ]; then
+        if [ ! -f "/usr/local/bin/kubeadm" ]; then
             echo "所有国内CDN都失败，使用官方源..."
             
             curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubeadm"
@@ -289,7 +277,6 @@ else
             mv kubeadm kubectl kubelet /usr/local/bin/
             
             INSTALLED_VERSION="1.33.4"
-            INSTALL_SUCCESS=true
         fi
         
         # 清理临时目录
