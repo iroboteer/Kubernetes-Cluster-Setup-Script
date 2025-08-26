@@ -85,15 +85,46 @@ EOF
 
 sysctl --system
 
-# 5. 配置阿里云镜像源
-echo "5. 配置阿里云镜像源..."
-cat > /etc/yum.repos.d/kubernetes.repo << EOF
-[kubernetes]
-name=Kubernetes
+# 5. 配置多个国内镜像源
+echo "5. 配置多个国内镜像源..."
+cat > /etc/yum.repos.d/kubernetes-aliyun.repo << EOF
+[kubernetes-aliyun]
+name=Kubernetes Aliyun
 baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
 enabled=1
 gpgcheck=0
 repo_gpgcheck=0
+priority=1
+EOF
+
+cat > /etc/yum.repos.d/kubernetes-tencent.repo << EOF
+[kubernetes-tencent]
+name=Kubernetes Tencent
+baseurl=https://mirrors.cloud.tencent.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+priority=2
+EOF
+
+cat > /etc/yum.repos.d/kubernetes-huaweicloud.repo << EOF
+[kubernetes-huaweicloud]
+name=Kubernetes HuaweiCloud
+baseurl=https://mirrors.huaweicloud.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+priority=3
+EOF
+
+cat > /etc/yum.repos.d/kubernetes-ustc.repo << EOF
+[kubernetes-ustc]
+name=Kubernetes USTC
+baseurl=https://mirrors.ustc.edu.cn/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+priority=4
 EOF
 
 # 清理dnf缓存
@@ -168,8 +199,10 @@ else
     systemctl status containerd --no-pager -l
 fi
 
-# 重启containerd以应用新配置
-systemctl restart containerd
+# 配置containerd使用国内镜像源
+echo "配置containerd使用国内镜像源..."
+chmod +x configure-containerd-china.sh
+./configure-containerd-china.sh
 
 # 8. 安装kubeadm, kubelet, kubectl
 echo "8. 安装Kubernetes组件..."
@@ -198,15 +231,29 @@ else
         dnf makecache
     fi
     
-    # 尝试安装Kubernetes 1.33.4
-    echo "尝试安装Kubernetes 1.33.4..."
-    if dnf install -y kubelet-1.33.4 kubeadm-1.33.4 kubectl-1.33.4; then
-        echo "✓ Kubernetes 1.33.4安装成功"
-    else
-        echo "通过yum安装失败，尝试备用方法..."
+    # 尝试安装Kubernetes 1.33版本
+    echo "尝试安装Kubernetes 1.33版本..."
+    INSTALL_SUCCESS=false
+    
+    # 尝试安装1.33.x版本（从1.33.0到1.33.9）
+    for version in 1.33.9 1.33.8 1.33.7 1.33.6 1.33.5 1.33.4 1.33.3 1.33.2 1.33.1 1.33.0; do
+        echo "尝试安装Kubernetes $version..."
         
-        # 备用安装方法：直接下载二进制文件
-        echo "使用备用安装方法..."
+        if dnf install -y kubelet-$version kubeadm-$version kubectl-$version 2>/dev/null; then
+            echo "✓ Kubernetes $version 安装成功"
+            INSTALLED_VERSION=$version
+            INSTALL_SUCCESS=true
+            break
+        else
+            echo "✗ Kubernetes $version 安装失败，尝试下一个版本..."
+        fi
+    done
+    
+    if [ "$INSTALL_SUCCESS" = false ]; then
+        echo "所有镜像源中都没有1.33.x版本，使用备用方法..."
+        
+        # 备用方法：使用国内CDN下载
+        echo "使用国内CDN下载Kubernetes 1.33.4..."
         
         # 创建临时目录
         mkdir -p /tmp/k8s-install
@@ -214,29 +261,49 @@ else
         
         K8S_VERSION="v1.33.4"
         
-        # 下载kubeadm
-        echo "下载kubeadm..."
-        curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubeadm"
-        chmod +x kubeadm
-        mv kubeadm /usr/local/bin/
+        # 尝试多个国内CDN
+        CDN_URLS=(
+            "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/"
+            "https://mirrors.aliyun.com/kubernetes/release/${K8S_VERSION}/bin/linux/amd64/"
+            "https://mirrors.ustc.edu.cn/kubernetes/release/${K8S_VERSION}/bin/linux/amd64/"
+        )
         
-        # 下载kubectl
-        echo "下载kubectl..."
-        curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl"
-        chmod +x kubectl
-        mv kubectl /usr/local/bin/
+        for cdn_url in "${CDN_URLS[@]}"; do
+            echo "尝试从 $cdn_url 下载..."
+            
+            if curl -fLO "${cdn_url}kubeadm" && curl -fLO "${cdn_url}kubectl" && curl -fLO "${cdn_url}kubelet"; then
+                echo "✓ 从 $cdn_url 下载成功"
+                
+                # 设置执行权限并安装
+                chmod +x kubeadm kubectl kubelet
+                mv kubeadm kubectl kubelet /usr/local/bin/
+                
+                INSTALLED_VERSION="1.33.4"
+                INSTALL_SUCCESS=true
+                break
+            else
+                echo "✗ 从 $cdn_url 下载失败，尝试下一个CDN..."
+            fi
+        done
         
-        # 下载kubelet
-        echo "下载kubelet..."
-        curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubelet"
-        chmod +x kubelet
-        mv kubelet /usr/local/bin/
+        # 如果所有CDN都失败，使用官方源
+        if [ "$INSTALL_SUCCESS" = false ]; then
+            echo "所有国内CDN都失败，使用官方源..."
+            
+            curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubeadm"
+            curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl"
+            curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubelet"
+            
+            chmod +x kubeadm kubectl kubelet
+            mv kubeadm kubectl kubelet /usr/local/bin/
+            
+            INSTALLED_VERSION="1.33.4"
+            INSTALL_SUCCESS=true
+        fi
         
         # 清理临时目录
         cd /
         rm -rf /tmp/k8s-install
-        
-        echo "✓ Kubernetes 1.33.4已通过备用方法安装"
     fi
 fi
 

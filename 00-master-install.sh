@@ -43,12 +43,14 @@ prepare_system_auto() {
     ./01-prepare-system.sh
 }
 
-# 自动安装Kubernetes 1.33.4（不显示菜单）
+# 自动安装Kubernetes 1.33版本（多镜像源）
 install_k8s_1_33_4_auto() {
-    echo "自动安装Kubernetes 1.33.4..."
-    chmod +x install-k8s-1.33.4.sh
-    ./install-k8s-1.33.4.sh
+    echo "自动安装Kubernetes 1.33版本（多镜像源）..."
+    chmod +x install-k8s-1.33-china.sh
+    ./install-k8s-1.33-china.sh
 }
+
+
 
 # 自动清理旧版本Kubernetes（不显示菜单）
 cleanup_old_k8s_auto() {
