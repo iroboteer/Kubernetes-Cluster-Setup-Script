@@ -149,7 +149,7 @@ state = "/run/containerd"
     [plugins."io.containerd.grpc.v1.cri".registry]
       [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-          endpoint = ["https://docker.mirrors.ustc.edu.cn", "https://hub-mirror.c.163.com", "https://mirror.baidubce.com"]
+          endpoint = ["https://hub-mirror.c.163.com", "https://mirror.baidubce.com"]
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."k8s.gcr.io"]
           endpoint = ["https://registry.aliyuncs.com/google_containers"]
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."registry.k8s.io"]
