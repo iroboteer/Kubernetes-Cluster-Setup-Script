@@ -48,11 +48,11 @@ for repo in /etc/yum.repos.d/*.repo; do
     fi
 done
 
-# 3. 清理yum缓存
+# 3. 清理dnf缓存
 echo ""
-echo "3. 清理yum缓存..."
-yum clean all
-yum makecache
+echo "3. 清理dnf缓存..."
+dnf clean all
+dnf makecache
 
 # 4. 验证清理结果
 echo ""
@@ -72,21 +72,21 @@ done
 echo ""
 echo "5. 测试Kubernetes组件安装..."
 echo "尝试安装kubelet..."
-if yum install -y kubelet --dry-run; then
+if dnf install -y kubelet --dry-run; then
     echo "✓ kubelet可以安装"
 else
     echo "✗ kubelet安装失败"
 fi
 
 echo "尝试安装kubeadm..."
-if yum install -y kubeadm --dry-run; then
+if dnf install -y kubeadm --dry-run; then
     echo "✓ kubeadm可以安装"
 else
     echo "✗ kubeadm安装失败"
 fi
 
 echo "尝试安装kubectl..."
-if yum install -y kubectl --dry-run; then
+if dnf install -y kubectl --dry-run; then
     echo "✓ kubectl可以安装"
 else
     echo "✗ kubectl安装失败"
@@ -98,7 +98,7 @@ echo "清理完成！"
 echo "=========================================="
 echo ""
 echo "现在可以尝试安装Kubernetes组件:"
-echo "yum install -y kubelet kubeadm kubectl"
+echo "dnf install -y kubelet kubeadm kubectl"
 echo ""
 echo "或者运行修复脚本:"
 echo "./fix-k8s-install.sh"

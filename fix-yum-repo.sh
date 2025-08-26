@@ -48,9 +48,9 @@ gpgcheck=0
 repo_gpgcheck=0
 EOF
 
-# 5. 重建yum缓存
-echo "5. 重建yum缓存..."
-yum makecache
+# 5. 重建dnf缓存
+echo "5. 重建dnf缓存..."
+dnf makecache
 
 # 6. 测试yum源
 echo "6. 测试yum源..."
@@ -62,8 +62,8 @@ yum repolist | grep containerd || echo "containerd源不可用"
 
 # 7. 尝试安装测试包
 echo "7. 测试安装..."
-echo "测试安装yum-utils..."
-yum install -y yum-utils --nogpgcheck || echo "yum-utils安装失败"
+echo "测试安装dnf-utils..."
+dnf install -y dnf-utils --nogpgcheck || echo "dnf-utils安装失败"
 
 echo ""
 echo "=========================================="
@@ -77,7 +77,7 @@ echo "   curl -LO https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubeadm"
 echo "   chmod +x kubeadm && mv kubeadm /usr/local/bin/"
 echo ""
 echo "2. 使用官方containerd安装:"
-echo "   yum install -y containerd.io"
+echo "   dnf install -y containerd.io"
 echo ""
 echo "3. 重新运行安装脚本:"
 echo "   ./01-prepare-system.sh"

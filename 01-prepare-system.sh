@@ -96,9 +96,9 @@ gpgcheck=0
 repo_gpgcheck=0
 EOF
 
-# 清理yum缓存
-yum clean all
-yum makecache
+# 清理dnf缓存
+dnf clean all
+dnf makecache
 
 # 6. 配置containerd
 echo "6. 配置containerd..."
@@ -140,7 +140,7 @@ if command -v containerd &> /dev/null; then
     echo "containerd已安装: $(containerd --version)"
 else
     echo "安装containerd..."
-    yum install -y containerd.io
+    dnf install -y containerd.io
     
     # 如果yum安装失败，尝试备用方法
     if ! command -v containerd &> /dev/null; then
@@ -183,22 +183,22 @@ else
     echo "安装Kubernetes组件..."
     
     # 清理并重建缓存
-    yum clean all
-    yum makecache
+    dnf clean all
+    dnf makecache
     
     # 尝试安装Kubernetes组件
-    echo "尝试yum安装Kubernetes组件..."
+    echo "尝试dnf安装Kubernetes组件..."
     
     # 检查是否有exclude配置
     if grep -r "exclude.*kube" /etc/yum.repos.d/ /etc/yum.conf 2>/dev/null; then
         echo "发现exclude配置，正在清理..."
         # 清理所有exclude配置
         sed -i '/exclude.*kube/d' /etc/yum.repos.d/*.repo /etc/yum.conf 2>/dev/null || true
-        yum clean all
-        yum makecache
+        dnf clean all
+        dnf makecache
     fi
     
-    yum install -y kubelet kubeadm kubectl || {
+    dnf install -y kubelet kubeadm kubectl || {
         echo "Kubernetes组件安装失败，尝试备用方法..."
         
         # 备用安装方法：直接下载二进制文件
@@ -235,14 +235,14 @@ else
     echo "✗ kubeadm未找到，尝试重新安装..."
     # 强制重新安装
     echo "强制重新安装Kubernetes组件..."
-    yum remove -y kubelet kubeadm kubectl 2>/dev/null || true
+    dnf remove -y kubelet kubeadm kubectl 2>/dev/null || true
     
     # 确保没有exclude配置
     sed -i '/exclude.*kube/d' /etc/yum.repos.d/*.repo /etc/yum.conf 2>/dev/null || true
-    yum clean all
-    yum makecache
+    dnf clean all
+    dnf makecache
     
-    yum install -y kubelet kubeadm kubectl
+    dnf install -y kubelet kubeadm kubectl
 fi
 
 if [ -n "$KUBECTL_PATH" ]; then

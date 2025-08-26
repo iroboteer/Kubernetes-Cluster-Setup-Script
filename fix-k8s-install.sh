@@ -25,10 +25,10 @@ gpgcheck=0
 repo_gpgcheck=0
 EOF
 
-# 2. 清理yum缓存
-echo "2. 清理yum缓存..."
-yum clean all
-yum makecache
+# 2. 清理dnf缓存
+echo "2. 清理dnf缓存..."
+dnf clean all
+dnf makecache
 
 # 3. 检查并安装Kubernetes组件
 echo "3. 安装Kubernetes组件..."
@@ -42,22 +42,22 @@ if command -v kubeadm &> /dev/null && command -v kubectl &> /dev/null && command
 else
     echo "安装Kubernetes组件..."
     
-    # 尝试yum安装
-    echo "尝试yum安装Kubernetes组件..."
+    # 尝试dnf安装
+    echo "尝试dnf安装Kubernetes组件..."
     
     # 检查是否有exclude配置
     if grep -r "exclude.*kube" /etc/yum.repos.d/ /etc/yum.conf 2>/dev/null; then
         echo "发现exclude配置，正在清理..."
         # 清理所有exclude配置
         sed -i '/exclude.*kube/d' /etc/yum.repos.d/*.repo /etc/yum.conf 2>/dev/null || true
-        yum clean all
-        yum makecache
+        dnf clean all
+        dnf makecache
     fi
     
-    if yum install -y kubelet kubeadm kubectl; then
-        echo "✓ yum安装成功"
+    if dnf install -y kubelet kubeadm kubectl; then
+        echo "✓ dnf安装成功"
     else
-        echo "yum安装失败，尝试备用方法..."
+        echo "dnf安装失败，尝试备用方法..."
         
         # 备用安装方法：直接下载二进制文件
         echo "使用备用安装方法..."

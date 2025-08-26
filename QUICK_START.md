@@ -47,8 +47,8 @@ sed -i 's/gpgcheck=1/gpgcheck=0/g' /etc/yum.repos.d/kubernetes.repo
 sed -i 's/repo_gpgcheck=1/repo_gpgcheck=0/g' /etc/yum.repos.d/kubernetes.repo
 
 # 清理缓存
-yum clean all
-yum makecache
+dnf clean all
+dnf makecache
 ```
 
 ### 问题4: containerd相关问题

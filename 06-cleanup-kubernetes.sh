@@ -83,22 +83,22 @@ iptables -X
 
 # 9. 卸载Kubernetes包
 echo "9. 卸载Kubernetes包..."
-yum remove -y kubeadm kubelet kubectl kubernetes-cni 2>/dev/null || true
+dnf remove -y kubeadm kubelet kubectl kubernetes-cni 2>/dev/null || true
 
 # 10. 卸载Docker包
 echo "10. 卸载Docker包..."
-yum remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 2>/dev/null || true
+dnf remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 2>/dev/null || true
 
-# 11. 清理yum缓存
-echo "11. 清理yum缓存..."
-yum clean all
+# 11. 清理dnf缓存
+echo "11. 清理dnf缓存..."
+dnf clean all
 
-# 12. 删除Kubernetes yum源
-echo "12. 删除Kubernetes yum源..."
+# 12. 删除Kubernetes dnf源
+echo "12. 删除Kubernetes dnf源..."
 rm -f /etc/yum.repos.d/kubernetes.repo
 
-# 13. 删除Docker yum源
-echo "13. 删除Docker yum源..."
+# 13. 删除Docker dnf源
+echo "13. 删除Docker dnf源..."
 rm -f /etc/yum.repos.d/docker-ce.repo
 
 # 14. 清理系统日志
