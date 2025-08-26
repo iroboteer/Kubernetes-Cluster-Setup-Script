@@ -198,29 +198,46 @@ else
         dnf makecache
     fi
     
-    dnf install -y kubelet kubeadm kubectl || {
-        echo "Kubernetes组件安装失败，尝试备用方法..."
+    # 尝试安装Kubernetes 1.33.4
+    echo "尝试安装Kubernetes 1.33.4..."
+    if dnf install -y kubelet-1.33.4 kubeadm-1.33.4 kubectl-1.33.4; then
+        echo "✓ Kubernetes 1.33.4安装成功"
+    else
+        echo "通过yum安装失败，尝试备用方法..."
         
         # 备用安装方法：直接下载二进制文件
         echo "使用备用安装方法..."
         
+        # 创建临时目录
+        mkdir -p /tmp/k8s-install
+        cd /tmp/k8s-install
+        
+        K8S_VERSION="v1.33.4"
+        
         # 下载kubeadm
-        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubeadm"
+        echo "下载kubeadm..."
+        curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubeadm"
         chmod +x kubeadm
         mv kubeadm /usr/local/bin/
         
         # 下载kubectl
-        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        echo "下载kubectl..."
+        curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl"
         chmod +x kubectl
         mv kubectl /usr/local/bin/
         
         # 下载kubelet
-        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubelet"
+        echo "下载kubelet..."
+        curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubelet"
         chmod +x kubelet
         mv kubelet /usr/local/bin/
         
-        echo "Kubernetes组件已通过备用方法安装"
-    }
+        # 清理临时目录
+        cd /
+        rm -rf /tmp/k8s-install
+        
+        echo "✓ Kubernetes 1.33.4已通过备用方法安装"
+    fi
 fi
 
 # 检查并修复PATH问题

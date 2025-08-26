@@ -51,9 +51,12 @@ fi
 
 echo "检测到Pod网络CIDR: $POD_CIDR"
 
-# 1. 下载Calico清单文件
+# 1. 下载Calico清单文件（使用阿里云镜像）
 echo "1. 下载Calico清单文件..."
 curl -O https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml
+
+# 替换镜像为阿里云镜像
+sed -i 's|docker.io/calico|registry.cn-hangzhou.aliyuncs.com/calico|g' tigera-operator.yaml
 
 # 2. 安装Calico Operator
 echo "2. 安装Calico Operator..."

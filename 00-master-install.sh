@@ -20,21 +20,12 @@ fi
 show_menu() {
     echo ""
     echo "请选择要执行的操作:"
-    echo "1. 系统环境准备 (所有节点都需要运行)"
-    echo "2. 安装控制平面 (仅在主节点运行)"
-    echo "3. 安装Calico网络插件 (仅在主节点运行)"
-    echo "4. 安装Kubernetes Dashboard (仅在主节点运行)"
-    echo "5. 工作节点加入集群 (在工作节点运行)"
-    echo "6. 一键安装完整集群 (主节点)"
-    echo "7. 清除Kubernetes集群"
-    echo "8. 查看集群状态"
-    echo "9. 诊断和修复安装问题"
-    echo "10. 修复yum源问题"
-    echo "11. 检查Kubernetes组件"
-    echo "12. 修复Kubernetes安装问题"
-    echo "13. 清理yum exclude配置"
-    echo "14. 修复kubelet服务单元文件"
-    echo "15. 退出"
+    echo "1. 安装控制平面 (主节点)"
+    echo "2. 安装Calico网络插件 (主节点)"
+    echo "3. 工作节点加入集群 (工作节点)"
+    echo "4. 打印工作节点加入集群指令 (主节点)"
+    echo "5. 显示集群状态 (主节点)"
+    echo "6. 退出"
     echo ""
 }
 
@@ -45,23 +36,53 @@ prepare_system() {
     ./01-prepare-system.sh
 }
 
+# 自动系统准备（不显示菜单）
+prepare_system_auto() {
+    echo "自动准备系统环境..."
+    chmod +x 01-prepare-system.sh
+    ./01-prepare-system.sh
+}
+
+# 自动安装Kubernetes 1.33.4（不显示菜单）
+install_k8s_1_33_4_auto() {
+    echo "自动安装Kubernetes 1.33.4..."
+    chmod +x install-k8s-1.33.4.sh
+    ./install-k8s-1.33.4.sh
+}
+
+# 自动清理旧版本Kubernetes（不显示菜单）
+cleanup_old_k8s_auto() {
+    echo "自动清理旧版本Kubernetes环境..."
+    chmod +x cleanup-old-k8s-auto.sh
+    ./cleanup-old-k8s-auto.sh
+}
+
 # 安装控制平面
 install_control_plane() {
-    echo "安装控制平面..."
+    echo "=========================================="
+    echo "安装Kubernetes控制平面 (1.33.4)"
+    echo "=========================================="
     
-    # 检查kubeadm是否已安装
-    if ! command -v kubeadm &> /dev/null; then
-        echo "检测到kubeadm未安装，自动运行系统环境准备..."
-        prepare_system
-    fi
+    # 自动完成所有准备工作
+    echo "1. 检测并清理旧版本Kubernetes环境..."
+    cleanup_old_k8s_auto
     
+    echo "2. 自动准备系统环境..."
+    prepare_system_auto
+    
+    echo "3. 安装Kubernetes 1.33.4组件..."
+    install_k8s_1_33_4_auto
+    
+    echo "4. 安装控制平面..."
     chmod +x 02-install-control-plane.sh
     ./02-install-control-plane.sh
 }
 
 # 安装Calico
 install_calico() {
-    echo "安装Calico网络插件..."
+    echo "=========================================="
+    echo "安装Calico网络插件"
+    echo "=========================================="
     
     # 检查kubectl是否可用
     if ! command -v kubectl &> /dev/null; then
@@ -89,14 +110,21 @@ install_dashboard() {
 
 # 工作节点加入
 join_worker() {
-    echo "工作节点加入集群..."
+    echo "=========================================="
+    echo "工作节点加入集群"
+    echo "=========================================="
     
-    # 检查kubeadm是否已安装
-    if ! command -v kubeadm &> /dev/null; then
-        echo "检测到kubeadm未安装，自动运行系统环境准备..."
-        prepare_system
-    fi
+    # 自动完成所有准备工作
+    echo "1. 检测并清理旧版本Kubernetes环境..."
+    cleanup_old_k8s_auto
     
+    echo "2. 自动准备系统环境..."
+    prepare_system_auto
+    
+    echo "3. 安装Kubernetes 1.33.4组件..."
+    install_k8s_1_33_4_auto
+    
+    echo "4. 加入集群..."
     chmod +x 05-join-worker-node.sh
     ./05-join-worker-node.sh
 }
@@ -194,6 +222,25 @@ cleanup_cluster() {
     ./06-cleanup-kubernetes.sh
 }
 
+# 打印工作节点加入集群指令
+print_join_command() {
+    echo "=========================================="
+    echo "工作节点加入集群指令"
+    echo "=========================================="
+    
+    if command -v kubeadm &> /dev/null; then
+        echo "请保存以下命令，用于工作节点加入集群："
+        echo ""
+        kubeadm token create --print-join-command
+        echo ""
+        echo "或者运行以下命令获取完整的加入命令："
+        echo "kubeadm init phase upload-certs --upload-certs"
+        echo "kubeadm token create --print-join-command"
+    else
+        echo "kubeadm未找到，请先安装控制平面"
+    fi
+}
+
 # 查看集群状态
 show_cluster_status() {
     echo "=========================================="
@@ -259,55 +306,42 @@ fix_kubelet_service() {
     ./fix-kubelet-service.sh
 }
 
+# 修复Kubernetes版本兼容性问题
+fix_k8s_version() {
+    echo "修复Kubernetes版本兼容性问题..."
+    chmod +x fix-k8s-version.sh
+    ./fix-k8s-version.sh
+}
+
+# 安装Kubernetes 1.33.4（阿里云源）
+install_k8s_1_33_4() {
+    echo "安装Kubernetes 1.33.4（阿里云源）..."
+    chmod +x install-k8s-1.33.4.sh
+    ./install-k8s-1.33.4.sh
+}
+
 # 主循环
 while true; do
     show_menu
-    read -p "请输入选项 (1-15): " choice
+    read -p "请输入选项 (1-6): " choice
     
-            case $choice in
+    case $choice in
         1)
-            prepare_system
-            ;;
-        2)
             install_control_plane
             ;;
-        3)
+        2)
             install_calico
             ;;
-        4)
-            install_dashboard
-            ;;
-        5)
+        3)
             join_worker
             ;;
-        6)
-            install_full_cluster
+        4)
+            print_join_command
             ;;
-        7)
-            cleanup_cluster
-            ;;
-        8)
+        5)
             show_cluster_status
             ;;
-        9)
-            diagnose_and_fix
-            ;;
-        10)
-            fix_yum_repo
-            ;;
-        11)
-            check_k8s_components
-            ;;
-        12)
-            fix_k8s_install
-            ;;
-        13)
-            clean_exclude
-            ;;
-        14)
-            fix_kubelet_service
-            ;;
-        15)
+        6)
             echo "退出脚本"
             exit 0
             ;;
