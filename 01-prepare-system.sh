@@ -242,10 +242,10 @@ else
         
         K8S_VERSION="v1.33.4"
         
-        # 尝试多个国内CDN
+        # 尝试多个CDN源
         CDN_URLS=(
+            "https://cdn.dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/"
             "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/"
-            "https://mirrors.aliyun.com/kubernetes/release/${K8S_VERSION}/bin/linux/amd64/"
         )
         
         for cdn_url in "${CDN_URLS[@]}"; do
