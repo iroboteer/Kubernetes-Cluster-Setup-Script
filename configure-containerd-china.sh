@@ -51,7 +51,6 @@ state = "/run/containerd"
         # Docker Hub镜像
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
           endpoint = [
-            "https://docker.mirrors.ustc.edu.cn",
             "https://hub-mirror.c.163.com",
             "https://mirror.baidubce.com",
             "https://registry.docker-cn.com"
@@ -70,13 +69,12 @@ state = "/run/containerd"
         # Quay镜像
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
           endpoint = [
-            "https://quay.mirrors.ustc.edu.cn",
             "https://mirror.quay.io"
           ]
         # Google镜像
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."gcr.io"]
           endpoint = [
-            "https://gcr.mirrors.ustc.edu.cn"
+            "https://gcr.io"
           ]
         # 阿里云镜像
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."registry.aliyuncs.com"]
@@ -123,10 +121,10 @@ echo "containerd国内镜像源配置完成！"
 echo "=========================================="
 echo ""
 echo "配置的镜像源:"
-echo "- Docker Hub: USTC、网易、百度云、Docker中国"
+echo "- Docker Hub: 网易、百度云、Docker中国"
 echo "- Kubernetes: 阿里云"
-echo "- Quay: USTC、官方镜像"
-echo "- Google: USTC"
+echo "- Quay: 官方镜像"
+echo "- Google: 官方"
 echo "- 阿里云: 官方"
 echo ""
 echo "现在可以流畅地拉取各种镜像了！"

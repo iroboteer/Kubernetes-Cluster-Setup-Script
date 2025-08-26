@@ -86,7 +86,7 @@ EOF
 sysctl --system
 
 # 5. 配置多个国内镜像源
-echo "5. 配置多个国内镜像源..."
+echo "5. 配置多个国内镜像源（阿里云、腾讯云、华为云）..."
 cat > /etc/yum.repos.d/kubernetes-aliyun.repo << EOF
 [kubernetes-aliyun]
 name=Kubernetes Aliyun
@@ -117,15 +117,7 @@ repo_gpgcheck=0
 priority=3
 EOF
 
-cat > /etc/yum.repos.d/kubernetes-ustc.repo << EOF
-[kubernetes-ustc]
-name=Kubernetes USTC
-baseurl=https://mirrors.ustc.edu.cn/kubernetes/yum/repos/kubernetes-el7-x86_64/
-enabled=1
-gpgcheck=0
-repo_gpgcheck=0
-priority=4
-EOF
+
 
 # 清理dnf缓存
 dnf clean all
@@ -265,7 +257,6 @@ else
         CDN_URLS=(
             "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/"
             "https://mirrors.aliyun.com/kubernetes/release/${K8S_VERSION}/bin/linux/amd64/"
-            "https://mirrors.ustc.edu.cn/kubernetes/release/${K8S_VERSION}/bin/linux/amd64/"
         )
         
         for cdn_url in "${CDN_URLS[@]}"; do
