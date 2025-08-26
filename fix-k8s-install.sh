@@ -118,8 +118,42 @@ else
     find /usr/bin /usr/local/bin -name kubelet 2>/dev/null || echo "  在常见路径中未找到"
 fi
 
-# 5. 启用kubelet服务
-echo "5. 启用kubelet服务..."
+# 5. 检查并创建kubelet服务单元文件
+echo "5. 检查并创建kubelet服务单元文件..."
+
+# 检查kubelet服务是否存在
+if systemctl list-unit-files | grep -q kubelet; then
+    echo "✓ kubelet服务单元文件已存在"
+else
+    echo "✗ kubelet服务单元文件不存在，正在创建..."
+    
+    # 创建kubelet服务单元文件
+    cat > /etc/systemd/system/kubelet.service << 'EOF'
+[Unit]
+Description=kubelet: The Kubernetes Node Agent
+Documentation=https://kubernetes.io/docs/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/kubelet
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    echo "✓ kubelet服务单元文件已创建"
+    
+    # 重新加载systemd配置
+    echo "重新加载systemd配置..."
+    systemctl daemon-reload
+fi
+
+# 启用kubelet服务
+echo "启用kubelet服务..."
 systemctl enable kubelet
 
 # 6. 确保PATH正确

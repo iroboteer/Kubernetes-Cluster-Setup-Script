@@ -33,7 +33,8 @@ show_menu() {
     echo "11. 检查Kubernetes组件"
     echo "12. 修复Kubernetes安装问题"
     echo "13. 清理yum exclude配置"
-    echo "14. 退出"
+    echo "14. 修复kubelet服务单元文件"
+    echo "15. 退出"
     echo ""
 }
 
@@ -251,10 +252,17 @@ clean_exclude() {
     ./clean-exclude.sh
 }
 
+# 修复kubelet服务单元文件
+fix_kubelet_service() {
+    echo "修复kubelet服务单元文件..."
+    chmod +x fix-kubelet-service.sh
+    ./fix-kubelet-service.sh
+}
+
 # 主循环
 while true; do
     show_menu
-    read -p "请输入选项 (1-14): " choice
+    read -p "请输入选项 (1-15): " choice
     
             case $choice in
         1)
@@ -297,6 +305,9 @@ while true; do
             clean_exclude
             ;;
         14)
+            fix_kubelet_service
+            ;;
+        15)
             echo "退出脚本"
             exit 0
             ;;
