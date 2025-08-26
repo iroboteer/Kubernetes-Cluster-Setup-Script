@@ -29,13 +29,6 @@ show_menu() {
     echo ""
 }
 
-# 执行系统准备
-prepare_system() {
-    echo "执行系统环境准备..."
-    chmod +x 01-prepare-system.sh
-    ./01-prepare-system.sh
-}
-
 # 自动系统准备（不显示菜单）
 prepare_system_auto() {
     echo "自动准备系统环境..."
@@ -43,40 +36,28 @@ prepare_system_auto() {
     ./01-prepare-system.sh
 }
 
-# 自动安装Kubernetes 1.33.4版本（多镜像源）
-install_k8s_1_33_4_auto() {
-    echo "自动安装Kubernetes 1.33.4版本（多镜像源）..."
-    # 直接调用01-prepare-system.sh，它已经包含了1.33.4的安装逻辑
+# 自动安装Kubernetes 1.28版本
+install_k8s_1_28_auto() {
+    echo "自动安装Kubernetes 1.28版本..."
+    # 直接调用01-prepare-system.sh，它已经包含了1.28的安装逻辑
     chmod +x 01-prepare-system.sh
     ./01-prepare-system.sh
-}
-
-
-
-# 自动清理旧版本Kubernetes（不显示菜单）
-cleanup_old_k8s_auto() {
-    echo "自动清理旧版本Kubernetes环境..."
-    chmod +x cleanup-old-k8s-auto.sh
-    ./cleanup-old-k8s-auto.sh
 }
 
 # 安装控制平面
 install_control_plane() {
     echo "=========================================="
-    echo "安装Kubernetes控制平面 (1.33.4)"
+    echo "安装Kubernetes控制平面 (1.28)"
     echo "=========================================="
     
     # 自动完成所有准备工作
-    echo "1. 检测并清理旧版本Kubernetes环境..."
-    cleanup_old_k8s_auto
-    
-    echo "2. 自动准备系统环境..."
+    echo "1. 自动准备系统环境..."
     prepare_system_auto
     
-    echo "3. 安装Kubernetes 1.33.4组件..."
-    install_k8s_1_33_4_auto
+    echo "2. 安装Kubernetes 1.28组件..."
+    install_k8s_1_28_auto
     
-    echo "4. 安装控制平面..."
+    echo "3. 安装控制平面..."
     chmod +x 02-install-control-plane.sh
     ./02-install-control-plane.sh
 }
@@ -97,20 +78,6 @@ install_calico() {
     ./03-install-calico.sh
 }
 
-# 安装Dashboard
-install_dashboard() {
-    echo "安装Kubernetes Dashboard..."
-    
-    # 检查kubectl是否可用
-    if ! command -v kubectl &> /dev/null; then
-        echo "检测到kubectl未安装，请先安装控制平面..."
-        install_control_plane
-    fi
-    
-    chmod +x 04-install-dashboard.sh
-    ./04-install-dashboard.sh
-}
-
 # 工作节点加入
 join_worker() {
     echo "=========================================="
@@ -118,111 +85,15 @@ join_worker() {
     echo "=========================================="
     
     # 自动完成所有准备工作
-    echo "1. 检测并清理旧版本Kubernetes环境..."
-    cleanup_old_k8s_auto
-    
-    echo "2. 自动准备系统环境..."
+    echo "1. 自动准备系统环境..."
     prepare_system_auto
     
-    echo "3. 安装Kubernetes 1.33.4组件..."
-    install_k8s_1_33_4_auto
+    echo "2. 安装Kubernetes 1.28组件..."
+    install_k8s_1_28_auto
     
-    echo "4. 加入集群..."
+    echo "3. 加入集群..."
     chmod +x 05-join-worker-node.sh
     ./05-join-worker-node.sh
-}
-
-# 一键安装完整集群
-install_full_cluster() {
-    echo "开始一键安装完整Kubernetes集群..."
-    echo ""
-    echo "此操作将按顺序执行:"
-    echo "1. 系统环境准备"
-    echo "2. 安装控制平面"
-    echo "3. 安装Calico网络插件"
-    echo "4. 安装Kubernetes Dashboard"
-    echo ""
-    read -p "确认继续? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "操作已取消"
-        return
-    fi
-    
-    echo "=========================================="
-    echo "开始一键安装..."
-    echo "=========================================="
-    
-    # 检查并安装依赖
-    check_and_install_dependencies() {
-        echo "检查系统依赖..."
-        
-        # 检查系统环境准备
-        if ! command -v kubeadm &> /dev/null; then
-            echo "步骤 1/4: 系统环境准备"
-            prepare_system
-        else
-            echo "✓ 系统环境已准备"
-        fi
-        
-        # 检查控制平面
-        if ! command -v kubectl &> /dev/null || [ ! -f /etc/kubernetes/admin.conf ]; then
-            echo "步骤 2/4: 安装控制平面"
-            install_control_plane
-        else
-            echo "✓ 控制平面已安装"
-        fi
-        
-        # 检查网络插件
-        if command -v kubectl &> /dev/null; then
-            export KUBECONFIG=/etc/kubernetes/admin.conf
-            if ! kubectl get pods -n calico-system &> /dev/null; then
-                echo "步骤 3/4: 安装Calico网络插件"
-                install_calico
-            else
-                echo "✓ Calico网络插件已安装"
-            fi
-        fi
-        
-        # 检查Dashboard
-        if command -v kubectl &> /dev/null; then
-            export KUBECONFIG=/etc/kubernetes/admin.conf
-            if ! kubectl get pods -n kubernetes-dashboard &> /dev/null; then
-                echo "步骤 4/4: 安装Kubernetes Dashboard"
-                install_dashboard
-            else
-                echo "✓ Kubernetes Dashboard已安装"
-            fi
-        fi
-    }
-    
-    # 执行依赖检查和安装
-    check_and_install_dependencies
-    
-    echo "=========================================="
-    echo "Kubernetes集群安装完成！"
-    echo "=========================================="
-    echo ""
-    echo "集群信息:"
-    if command -v kubectl &> /dev/null; then
-        export KUBECONFIG=/etc/kubernetes/admin.conf
-        kubectl get nodes
-        echo ""
-        echo "Dashboard访问信息:"
-        if [ -f "access-dashboard.sh" ]; then
-            ./access-dashboard.sh
-        fi
-    fi
-    echo ""
-    echo "接下来可以在工作节点上运行:"
-    echo "./00-master-install.sh 并选择选项 5"
-}
-
-# 清除集群
-cleanup_cluster() {
-    echo "清除Kubernetes集群..."
-    chmod +x 06-cleanup-kubernetes.sh
-    ./06-cleanup-kubernetes.sh
 }
 
 # 打印工作节点加入集群指令
@@ -265,62 +136,6 @@ show_cluster_status() {
     else
         echo "kubectl未找到，请先安装Kubernetes"
     fi
-}
-
-# 诊断和修复
-diagnose_and_fix() {
-    echo "诊断和修复安装问题..."
-    chmod +x fix-installation.sh
-    ./fix-installation.sh
-}
-
-# 修复yum源
-fix_yum_repo() {
-    echo "修复yum源问题..."
-    chmod +x fix-yum-repo.sh
-    ./fix-yum-repo.sh
-}
-
-# 检查Kubernetes组件
-check_k8s_components() {
-    echo "检查Kubernetes组件..."
-    chmod +x check-k8s-components.sh
-    ./check-k8s-components.sh
-}
-
-# 修复Kubernetes安装问题
-fix_k8s_install() {
-    echo "修复Kubernetes安装问题..."
-    chmod +x fix-k8s-install.sh
-    ./fix-k8s-install.sh
-}
-
-# 清理yum exclude配置
-clean_exclude() {
-    echo "清理yum exclude配置..."
-    chmod +x clean-exclude.sh
-    ./clean-exclude.sh
-}
-
-# 修复kubelet服务单元文件
-fix_kubelet_service() {
-    echo "修复kubelet服务单元文件..."
-    chmod +x fix-kubelet-service.sh
-    ./fix-kubelet-service.sh
-}
-
-# 修复Kubernetes版本兼容性问题
-fix_k8s_version() {
-    echo "修复Kubernetes版本兼容性问题..."
-    chmod +x fix-k8s-version.sh
-    ./fix-k8s-version.sh
-}
-
-# 安装Kubernetes 1.33.4（阿里云源）
-install_k8s_1_33_4() {
-    echo "安装Kubernetes 1.33.4（阿里云源）..."
-    chmod +x install-k8s-1.33.4.sh
-    ./install-k8s-1.33.4.sh
 }
 
 # 主循环

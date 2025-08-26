@@ -80,6 +80,14 @@ echo "检测到本机IP: $MASTER_IP"
 read -p "请确认控制平面IP地址 [$MASTER_IP]: " CONFIRMED_IP
 MASTER_IP=${CONFIRMED_IP:-$MASTER_IP}
 
+# 获取Kubernetes版本
+get_k8s_version() {
+    # 使用固定的1.28版本
+    K8S_VERSION="1.28.0"
+    echo "使用Kubernetes版本: $K8S_VERSION"
+    echo "v$K8S_VERSION"
+}
+
 # 询问Pod网络CIDR
 read -p "请输入Pod网络CIDR [10.244.0.0/16]: " POD_CIDR
 POD_CIDR=${POD_CIDR:-10.244.0.0/16}
@@ -99,36 +107,39 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-# 1. 创建kubeadm配置文件
-echo "1. 创建kubeadm配置文件..."
-cat > kubeadm-config.yaml << EOF
-apiVersion: kubeadm.k8s.io/v1beta3
-kind: InitConfiguration
-nodeRegistration:
-  criSocket: unix:///var/run/containerd/containerd.sock
-  kubeletExtraArgs:
-    cgroup-driver: systemd
----
+# 创建kubeadm配置文件
+create_kubeadm_config() {
+    local CONTROL_PLANE_IP=$1
+    local POD_CIDR=$2
+    local SERVICE_CIDR=$3
+    local K8S_VERSION=$(get_k8s_version)
+    
+    echo "使用Kubernetes版本: $K8S_VERSION"
+    
+    cat > kubeadm-config.yaml << EOF
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
-kubernetesVersion: v1.33.4
-controlPlaneEndpoint: "$MASTER_IP:6443"
+kubernetesVersion: $K8S_VERSION
+controlPlaneEndpoint: "$CONTROL_PLANE_IP:6443"
 networking:
   podSubnet: "$POD_CIDR"
   serviceSubnet: "$SERVICE_CIDR"
-imageRepository: registry.aliyuncs.com/google_containers
 apiServer:
   certSANs:
-  - "$MASTER_IP"
-  - "kubernetes"
-  - "kubernetes.default"
-  - "kubernetes.default.svc"
-  - "kubernetes.default.svc.cluster.local"
+  - "$CONTROL_PLANE_IP"
+  - "localhost"
+  - "127.0.0.1"
 ---
-apiVersion: kubelet.config.k8s.io/v1beta1
-kind: KubeletConfiguration
-cgroupDriver: systemd
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: "unix:///var/run/containerd/containerd.sock"
 EOF
+}
+
+# 1. 创建kubeadm配置文件
+echo "1. 创建kubeadm配置文件..."
+create_kubeadm_config "$MASTER_IP" "$POD_CIDR" "$SERVICE_CIDR"
 
 # 2. 初始化控制平面
 echo "2. 初始化Kubernetes控制平面..."

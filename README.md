@@ -7,9 +7,7 @@
 - ✅ 系统环境自动准备
 - ✅ 控制平面安装和初始化
 - ✅ Calico网络插件安装
-- ✅ Kubernetes Dashboard管理界面
 - ✅ 工作节点自动加入集群
-- ✅ 一键清除Kubernetes集群
 - ✅ 阿里云镜像源配置
 - ✅ 完整的错误检查和验证
 
@@ -24,7 +22,7 @@
 
 ## 脚本说明
 
-### 主要脚本
+### 核心脚本
 
 | 脚本名称 | 用途 | 运行位置 |
 |---------|------|----------|
@@ -32,9 +30,7 @@
 | `01-prepare-system.sh` | 系统环境准备 | 所有节点 |
 | `02-install-control-plane.sh` | 安装控制平面 | 主节点 |
 | `03-install-calico.sh` | 安装Calico网络插件 | 主节点 |
-| `04-install-dashboard.sh` | 安装Kubernetes Dashboard | 主节点 |
 | `05-join-worker-node.sh` | 工作节点加入集群 | 工作节点 |
-| `06-cleanup-kubernetes.sh` | 清除Kubernetes集群 | 所有节点 |
 
 ## 快速开始
 
@@ -53,12 +49,12 @@ chmod +x *.sh
 ./00-master-install.sh
 ```
 
-选择选项 `6` 进行一键安装完整集群，或者按步骤选择：
+按步骤选择：
 
-1. 选择 `1` - 系统环境准备
-2. 选择 `2` - 安装控制平面
-3. 选择 `3` - 安装Calico网络插件
-4. 选择 `4` - 安装Kubernetes Dashboard
+1. 选择 `1` - 安装控制平面
+2. 选择 `2` - 安装Calico网络插件
+3. 选择 `4` - 打印工作节点加入集群指令
+4. 选择 `5` - 显示集群状态
 
 ### 3. 工作节点加入
 
@@ -68,128 +64,84 @@ chmod +x *.sh
 ./00-master-install.sh
 ```
 
-选择选项 `5` - 工作节点加入集群，然后输入主节点提供的信息。
+选择选项 `3` - 工作节点加入集群，然后输入主节点提供的信息。
 
 ## 详细安装步骤
 
-### 步骤1: 系统环境准备
+### 步骤1: 安装控制平面
 
-在所有节点（主节点和工作节点）上运行：
-
-```bash
-./01-prepare-system.sh
-```
-
-此脚本会：
-- 关闭防火墙和SELinux
-- 关闭swap
-- 配置内核参数
-- 配置阿里云镜像源
-- 安装Docker
-- 安装Kubernetes组件
-
-### 步骤2: 安装控制平面
-
-仅在主节点上运行：
+在主节点上运行：
 
 ```bash
-./02-install-control-plane.sh
+./00-master-install.sh
 ```
 
-此脚本会：
-- 初始化Kubernetes控制平面
-- 配置kubectl
-- 生成工作节点加入命令
+选择选项 `1` - 安装控制平面。此操作会自动：
+- 准备系统环境
+- 安装Kubernetes 1.28组件
+- 初始化控制平面
 
-### 步骤3: 安装网络插件
+### 步骤2: 安装Calico网络插件
 
-仅在主节点上运行：
+在主节点上运行：
 
 ```bash
-./03-install-calico.sh
+./00-master-install.sh
 ```
 
-此脚本会：
-- 安装Calico网络插件
-- 配置Pod网络
-- 验证网络连通性
+选择选项 `2` - 安装Calico网络插件。
 
-### 步骤4: 安装管理界面
-
-仅在主节点上运行：
-
-```bash
-./04-install-dashboard.sh
-```
-
-此脚本会：
-- 安装Kubernetes Dashboard
-- 创建管理员用户
-- 生成访问令牌
-
-### 步骤5: 工作节点加入
+### 步骤3: 工作节点加入集群
 
 在工作节点上运行：
 
 ```bash
-./05-join-worker-node.sh
+./00-master-install.sh
 ```
 
-需要输入主节点提供的加入命令信息。
+选择选项 `3` - 工作节点加入集群。
 
-## 验证安装
+### 步骤4: 验证集群状态
 
-### 检查集群状态
+在主节点上运行：
 
 ```bash
-kubectl get nodes
-kubectl get pods --all-namespaces
+./00-master-install.sh
 ```
 
-### 访问Dashboard
+选择选项 `5` - 显示集群状态。
 
-运行以下命令获取访问信息：
+## 配置说明
 
-```bash
-./access-dashboard.sh
-```
+### 镜像源配置
 
-或者手动获取令牌：
+脚本使用阿里云镜像源加速下载：
+- Kubernetes组件：`https://mirrors.aliyun.com/kubernetes/`
+- Docker镜像：`https://registry.aliyuncs.com/google_containers`
 
-```bash
-kubectl -n kubernetes-dashboard create token admin-user
-```
+### 网络配置
 
-## 网络配置
-
-### Pod网络CIDR
-默认: `10.244.0.0/16`
-
-### Service网络CIDR
-默认: `10.96.0.0/12`
-
-### 控制平面端口
-- API Server: 6443
-- Dashboard: 30000-32767 (NodePort)
+- Pod网络CIDR：`10.244.0.0/16`
+- Service网络CIDR：`10.96.0.0/12`
+- 网络插件：Calico
 
 ## 故障排除
 
 ### 常见问题
 
-1. **节点状态为NotReady**
-   - 检查kubelet服务状态: `systemctl status kubelet`
-   - 检查Docker服务状态: `systemctl status docker`
-   - 检查网络连通性
+1. **kubeadm命令找不到**
+   - 确保已运行系统准备脚本
+   - 检查PATH环境变量
 
-2. **Pod无法启动**
-   - 检查镜像下载: `docker images`
-   - 检查网络策略: `kubectl get networkpolicies`
-   - 查看Pod日志: `kubectl logs <pod-name>`
-
-3. **Dashboard无法访问**
-   - 检查Dashboard Pod状态: `kubectl get pods -n kubernetes-dashboard`
-   - 检查Service配置: `kubectl get svc -n kubernetes-dashboard`
+2. **控制平面启动失败**
+   - 检查内存是否足够（至少2GB）
+   - 检查网络连接
    - 检查防火墙设置
+
+3. **工作节点无法加入集群**
+   - 检查网络连通性
+   - 验证加入令牌是否正确
+   - 检查kubelet服务状态
 
 ### 日志查看
 
@@ -197,61 +149,20 @@ kubectl -n kubernetes-dashboard create token admin-user
 # 查看kubelet日志
 journalctl -u kubelet -f
 
-# 查看Docker日志
-journalctl -u docker -f
+# 查看containerd日志
+journalctl -u containerd -f
 
-# 查看Pod日志
-kubectl logs <pod-name> -n <namespace>
+# 查看集群状态
+kubectl get nodes
+kubectl get pods --all-namespaces
 ```
-
-## 清理集群
-
-要完全清除Kubernetes集群，运行：
-
-```bash
-./06-cleanup-kubernetes.sh
-```
-
-**警告**: 此操作将删除所有Kubernetes数据和配置。
-
-## 配置说明
-
-### 镜像源配置
-
-脚本已配置以下镜像源：
-- Kubernetes: 阿里云镜像源
-- containerd: 阿里云、中科大、网易、百度镜像源
-
-### 系统配置
-
-- SELinux: permissive模式
-- 防火墙: 关闭
-- Swap: 关闭
-- 内核参数: 已优化
-
-## 安全注意事项
-
-1. 生产环境建议启用防火墙规则
-2. 定期更新Kubernetes版本
-3. 使用强密码和访问控制
-4. 启用RBAC权限控制
-5. 定期备份etcd数据
 
 ## 版本信息
 
-- Kubernetes版本: v1.28.0
-- Calico版本: v3.26.1
-- Dashboard版本: v2.7.0
-- containerd版本: v1.7.0
-
-## 支持
-
-如果遇到问题，请检查：
-1. 系统版本是否为CentOS Stream 10
-2. 网络连接是否正常
-3. 是否有足够的系统资源
-4. 脚本执行权限是否正确
+- Kubernetes版本：1.28.0
+- Calico版本：3.26.1
+- 支持系统：CentOS Stream 10
 
 ## 许可证
 
-此脚本集遵循MIT许可证。
+此项目采用MIT许可证。

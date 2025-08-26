@@ -168,7 +168,3 @@ echo "=========================================="
 echo ""
 echo "网络插件状态:"
 kubectl get pods -n calico-system
-echo ""
-echo "接下来可以运行:"
-echo "- 04-install-dashboard.sh (安装Kubernetes Dashboard)"
-echo "- 05-join-worker-node.sh (在工作节点上运行)"

@@ -85,8 +85,8 @@ EOF
 
 sysctl --system
 
-# 5. 配置多个国内镜像源
-echo "5. 配置多个国内镜像源（阿里云、腾讯云、华为云）..."
+# 5. 配置阿里云镜像源
+echo "5. 配置阿里云Kubernetes镜像源..."
 cat > /etc/yum.repos.d/kubernetes-aliyun.repo << EOF
 [kubernetes-aliyun]
 name=Kubernetes Aliyun
@@ -96,28 +96,6 @@ gpgcheck=0
 repo_gpgcheck=0
 priority=1
 EOF
-
-cat > /etc/yum.repos.d/kubernetes-tencent.repo << EOF
-[kubernetes-tencent]
-name=Kubernetes Tencent
-baseurl=https://mirrors.cloud.tencent.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
-enabled=1
-gpgcheck=0
-repo_gpgcheck=0
-priority=2
-EOF
-
-cat > /etc/yum.repos.d/kubernetes-huaweicloud.repo << EOF
-[kubernetes-huaweicloud]
-name=Kubernetes HuaweiCloud
-baseurl=https://mirrors.huaweicloud.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
-enabled=1
-gpgcheck=0
-repo_gpgcheck=0
-priority=3
-EOF
-
-
 
 # 清理dnf缓存
 dnf clean all
@@ -191,12 +169,7 @@ else
     systemctl status containerd --no-pager -l
 fi
 
-# 配置containerd使用国内镜像源
-echo "配置containerd使用国内镜像源..."
-chmod +x configure-containerd-china.sh
-./configure-containerd-china.sh
-
-# 8. 安装kubeadm, kubelet, kubectl
+# 8. 安装Kubernetes组件
 echo "8. 安装Kubernetes组件..."
 # 检查Kubernetes组件是否已安装
 if command -v kubeadm &> /dev/null && command -v kubectl &> /dev/null && command -v kubelet &> /dev/null; then
@@ -211,126 +184,92 @@ else
     dnf clean all
     dnf makecache
     
-    # 尝试安装Kubernetes组件
-    echo "尝试dnf安装Kubernetes组件..."
-    
-    # 检查是否有exclude配置
-    if grep -r "exclude.*kube" /etc/yum.repos.d/ /etc/yum.conf 2>/dev/null; then
-        echo "发现exclude配置，正在清理..."
-        # 清理所有exclude配置
-        sed -i '/exclude.*kube/d' /etc/yum.repos.d/*.repo /etc/yum.conf 2>/dev/null || true
-        dnf clean all
-        dnf makecache
-    fi
-    
-    # 安装Kubernetes 1.33.4版本
-    echo "安装Kubernetes 1.33.4版本..."
-    
-    # 尝试从镜像源安装1.33.4
-    if dnf install -y kubelet-1.33.4 kubeadm-1.33.4 kubectl-1.33.4 2>/dev/null; then
-        echo "✓ Kubernetes 1.33.4 从镜像源安装成功"
-        INSTALLED_VERSION="1.33.4"
+    # 安装阿里云源上的1.28版本
+    echo "安装阿里云源上的Kubernetes 1.28版本..."
+    if dnf install -y kubelet-1.28.0 kubeadm-1.28.0 kubectl-1.28.0 --disableexcludes=kubernetes; then
+        echo "✓ Kubernetes 1.28.0 从阿里云源安装成功"
+        
+        # 显示安装的版本
+        echo "安装的版本信息:"
+        kubeadm version --short
+        kubectl version --client --short
+        kubelet --version
     else
-        echo "镜像源中没有1.33.4版本，使用备用方法下载..."
+        echo "✗ 从阿里云源安装1.28.0失败，尝试安装最新可用版本..."
         
-        # 备用方法：使用国内CDN下载
-        echo "使用国内CDN下载Kubernetes 1.33.4..."
-        
-        # 创建临时目录
-        mkdir -p /tmp/k8s-install
-        cd /tmp/k8s-install
-        
-        K8S_VERSION="v1.33.4"
-        
-        # 尝试多个CDN源
-        CDN_URLS=(
-            "https://cdn.dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/"
-            "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/"
-        )
-        
-        for cdn_url in "${CDN_URLS[@]}"; do
-            echo "尝试从 $cdn_url 下载..."
+        # 如果1.28.0不可用，安装最新可用版本
+        if dnf install -y kubelet kubeadm kubectl --disableexcludes=kubernetes; then
+            echo "✓ Kubernetes最新版本从阿里云源安装成功"
             
-            if curl -fLO "${cdn_url}kubeadm" && curl -fLO "${cdn_url}kubectl" && curl -fLO "${cdn_url}kubelet"; then
-                echo "✓ 从 $cdn_url 下载成功"
+            # 显示安装的版本
+            echo "安装的版本信息:"
+            kubeadm version --short
+            kubectl version --client --short
+            kubelet --version
+        else
+            echo "✗ 阿里云源安装失败，使用备用方法下载1.28.0..."
+            
+            # 备用方法：使用CDN下载1.28.0
+            echo "使用CDN下载Kubernetes 1.28.0..."
+            
+            # 创建临时目录
+            mkdir -p /tmp/k8s-install
+            cd /tmp/k8s-install
+            
+            K8S_VERSION="v1.28.0"
+            echo "下载版本: $K8S_VERSION"
+            
+            # 尝试多个CDN源
+            CDN_URLS=(
+                "https://cdn.dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/"
+                "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/"
+            )
+            
+            for cdn_url in "${CDN_URLS[@]}"; do
+                echo "尝试从 $cdn_url 下载..."
                 
-                # 设置执行权限并安装
+                if curl -fLO "${cdn_url}kubeadm" && curl -fLO "${cdn_url}kubectl" && curl -fLO "${cdn_url}kubelet"; then
+                    echo "✓ 从 $cdn_url 下载成功"
+                    
+                    # 设置执行权限并安装
+                    chmod +x kubeadm kubectl kubelet
+                    mv kubeadm kubectl kubelet /usr/local/bin/
+                    break
+                else
+                    echo "✗ 从 $cdn_url 下载失败，尝试下一个CDN..."
+                fi
+            done
+            
+            # 如果所有CDN都失败，使用官方源
+            if [ ! -f "/usr/local/bin/kubeadm" ]; then
+                echo "所有CDN都失败，使用官方源..."
+                
+                curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubeadm"
+                curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl"
+                curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubelet"
+                
                 chmod +x kubeadm kubectl kubelet
                 mv kubeadm kubectl kubelet /usr/local/bin/
-                
-                INSTALLED_VERSION="1.33.4"
-                break
-            else
-                echo "✗ 从 $cdn_url 下载失败，尝试下一个CDN..."
             fi
-        done
-        
-        # 如果所有CDN都失败，使用官方源
-        if [ ! -f "/usr/local/bin/kubeadm" ]; then
-            echo "所有国内CDN都失败，使用官方源..."
             
-            curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubeadm"
-            curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl"
-            curl -LO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubelet"
-            
-            chmod +x kubeadm kubectl kubelet
-            mv kubeadm kubectl kubelet /usr/local/bin/
-            
-            INSTALLED_VERSION="1.33.4"
+            # 清理临时目录
+            cd /
+            rm -rf /tmp/k8s-install
         fi
-        
-        # 清理临时目录
-        cd /
-        rm -rf /tmp/k8s-install
     fi
 fi
 
-# 检查并修复PATH问题
-echo "检查Kubernetes组件安装位置..."
-KUBEADM_PATH=$(which kubeadm 2>/dev/null || find /usr/bin /usr/local/bin /opt -name kubeadm 2>/dev/null | head -1)
-KUBECTL_PATH=$(which kubectl 2>/dev/null || find /usr/bin /usr/local/bin /opt -name kubectl 2>/dev/null | head -1)
-KUBELET_PATH=$(which kubelet 2>/dev/null || find /usr/bin /usr/local/bin /opt -name kubelet 2>/dev/null | head -1)
-
-if [ -n "$KUBEADM_PATH" ]; then
-    echo "✓ kubeadm找到: $KUBEADM_PATH"
-else
-    echo "✗ kubeadm未找到，尝试重新安装..."
-    # 强制重新安装
-    echo "强制重新安装Kubernetes组件..."
-    dnf remove -y kubelet kubeadm kubectl 2>/dev/null || true
-    
-    # 确保没有exclude配置
-    sed -i '/exclude.*kube/d' /etc/yum.repos.d/*.repo /etc/yum.conf 2>/dev/null || true
-    dnf clean all
-    dnf makecache
-    
-    dnf install -y kubelet kubeadm kubectl
-fi
-
-if [ -n "$KUBECTL_PATH" ]; then
-    echo "✓ kubectl找到: $KUBECTL_PATH"
-else
-    echo "✗ kubectl未找到"
-fi
-
-if [ -n "$KUBELET_PATH" ]; then
-    echo "✓ kubelet找到: $KUBELET_PATH"
-else
-    echo "✗ kubelet未找到"
-fi
-
-# 确保PATH包含Kubernetes组件路径
-if ! echo "$PATH" | grep -q "/usr/bin"; then
-    echo "添加/usr/bin到PATH..."
-    export PATH="/usr/bin:$PATH"
-    echo 'export PATH="/usr/bin:$PATH"' >> /etc/profile
-fi
-
-# 启用kubelet
-echo "启用kubelet服务..."
+# 9. 启用kubelet服务
+echo "9. 启用kubelet服务..."
 systemctl enable kubelet
+systemctl start kubelet
 
-echo "Kubernetes组件安装完成"
+if systemctl is-active --quiet kubelet; then
+    echo "✓ kubelet服务已启动"
+else
+    echo "✗ kubelet服务启动失败"
+    systemctl status kubelet --no-pager -l
+fi
 
 echo "=========================================="
 echo "系统环境准备完成！"
