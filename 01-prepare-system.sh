@@ -187,6 +187,17 @@ else
     yum makecache
     
     # 尝试安装Kubernetes组件
+    echo "尝试yum安装Kubernetes组件..."
+    
+    # 检查是否有exclude配置
+    if grep -r "exclude.*kube" /etc/yum.repos.d/ /etc/yum.conf 2>/dev/null; then
+        echo "发现exclude配置，正在清理..."
+        # 清理所有exclude配置
+        sed -i '/exclude.*kube/d' /etc/yum.repos.d/*.repo /etc/yum.conf 2>/dev/null || true
+        yum clean all
+        yum makecache
+    fi
+    
     yum install -y kubelet kubeadm kubectl || {
         echo "Kubernetes组件安装失败，尝试备用方法..."
         
@@ -223,7 +234,14 @@ if [ -n "$KUBEADM_PATH" ]; then
 else
     echo "✗ kubeadm未找到，尝试重新安装..."
     # 强制重新安装
+    echo "强制重新安装Kubernetes组件..."
     yum remove -y kubelet kubeadm kubectl 2>/dev/null || true
+    
+    # 确保没有exclude配置
+    sed -i '/exclude.*kube/d' /etc/yum.repos.d/*.repo /etc/yum.conf 2>/dev/null || true
+    yum clean all
+    yum makecache
+    
     yum install -y kubelet kubeadm kubectl
 fi
 

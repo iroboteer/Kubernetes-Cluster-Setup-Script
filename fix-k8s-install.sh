@@ -43,6 +43,17 @@ else
     echo "安装Kubernetes组件..."
     
     # 尝试yum安装
+    echo "尝试yum安装Kubernetes组件..."
+    
+    # 检查是否有exclude配置
+    if grep -r "exclude.*kube" /etc/yum.repos.d/ /etc/yum.conf 2>/dev/null; then
+        echo "发现exclude配置，正在清理..."
+        # 清理所有exclude配置
+        sed -i '/exclude.*kube/d' /etc/yum.repos.d/*.repo /etc/yum.conf 2>/dev/null || true
+        yum clean all
+        yum makecache
+    fi
+    
     if yum install -y kubelet kubeadm kubectl; then
         echo "✓ yum安装成功"
     else
