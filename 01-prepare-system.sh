@@ -227,16 +227,19 @@ echo "启动containerd服务..."
 systemctl daemon-reload
 systemctl enable containerd
 
-# 检查containerd二进制文件是否存在
-if [ ! -f "/usr/local/bin/containerd" ]; then
+# 查找containerd二进制文件位置
+CONTAINERD_PATH=$(command -v containerd)
+if [ -z "$CONTAINERD_PATH" ]; then
     echo "✗ containerd二进制文件不存在，请检查安装"
     exit 1
 fi
 
+echo "找到containerd: $CONTAINERD_PATH"
+
 # 检查二进制文件权限
-if [ ! -x "/usr/local/bin/containerd" ]; then
+if [ ! -x "$CONTAINERD_PATH" ]; then
     echo "设置containerd执行权限..."
-    chmod +x /usr/local/bin/containerd
+    chmod +x "$CONTAINERD_PATH"
 fi
 
 # 启动服务
@@ -251,7 +254,7 @@ else
     
     # 尝试直接启动
     echo "尝试直接启动containerd..."
-    /usr/local/bin/containerd &
+    $CONTAINERD_PATH &
     sleep 3
     if pgrep containerd > /dev/null; then
         echo "✓ containerd 直接启动成功"
