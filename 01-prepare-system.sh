@@ -159,8 +159,22 @@ else
         echo "解压containerd..."
         tar xvf containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
         
-        # 复制二进制文件
+        # 复制二进制文件并设置权限
         cp bin/* /usr/local/bin/
+        chmod +x /usr/local/bin/containerd
+        chmod +x /usr/local/bin/containerd-shim
+        chmod +x /usr/local/bin/containerd-shim-runc-v1
+        chmod +x /usr/local/bin/containerd-shim-runc-v2
+        chmod +x /usr/local/bin/ctr
+        chmod +x /usr/local/bin/runc
+        
+        # 创建必要的目录
+        mkdir -p /etc/containerd
+        mkdir -p /var/lib/containerd
+        mkdir -p /run/containerd
+        
+        # 生成默认配置
+        /usr/local/bin/containerd config default > /etc/containerd/config.toml
         
         # 创建systemd服务文件
         mkdir -p /usr/local/lib/systemd/system
@@ -172,6 +186,7 @@ After=network.target local-fs.target
 
 [Service]
 ExecStartPre=-/sbin/modprobe overlay
+ExecStartPre=-/sbin/modprobe br_netfilter
 ExecStart=/usr/local/bin/containerd
 
 Type=notify
@@ -193,6 +208,9 @@ OOMScoreAdjust=-999
 WantedBy=multi-user.target
 EOF
         
+        # 复制服务文件到系统目录
+        cp /usr/local/lib/systemd/system/containerd.service /etc/systemd/system/
+        
         echo "✓ containerd 手动安装成功"
     else
         echo "✗ containerd 下载失败"
@@ -208,25 +226,38 @@ fi
 echo "启动containerd服务..."
 systemctl daemon-reload
 systemctl enable containerd
+
+# 检查containerd二进制文件是否存在
+if [ ! -f "/usr/local/bin/containerd" ]; then
+    echo "✗ containerd二进制文件不存在，请检查安装"
+    exit 1
+fi
+
+# 检查二进制文件权限
+if [ ! -x "/usr/local/bin/containerd" ]; then
+    echo "设置containerd执行权限..."
+    chmod +x /usr/local/bin/containerd
+fi
+
+# 启动服务
 systemctl start containerd
 
 # 验证containerd是否正常运行
 if systemctl is-active --quiet containerd; then
-    echo "containerd服务已启动"
+    echo "✓ containerd服务已启动"
 else
     echo "警告: containerd服务启动失败"
     systemctl status containerd --no-pager -l
     
-    # 如果是手动安装的containerd，尝试直接启动
-    if [ -f "/usr/local/bin/containerd" ]; then
-        echo "尝试直接启动手动安装的containerd..."
-        /usr/local/bin/containerd &
-        sleep 3
-        if pgrep containerd > /dev/null; then
-            echo "✓ containerd 直接启动成功"
-        else
-            echo "✗ containerd 启动失败"
-        fi
+    # 尝试直接启动
+    echo "尝试直接启动containerd..."
+    /usr/local/bin/containerd &
+    sleep 3
+    if pgrep containerd > /dev/null; then
+        echo "✓ containerd 直接启动成功"
+    else
+        echo "✗ containerd 启动失败，请检查日志"
+        journalctl -xeu containerd.service --no-pager -l
     fi
 fi
 
