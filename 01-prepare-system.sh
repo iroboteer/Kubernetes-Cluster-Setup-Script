@@ -141,18 +141,67 @@ if command -v containerd &> /dev/null; then
     echo "containerd已安装: $(containerd --version)"
 else
     echo "安装containerd..."
-    dnf install -y containerd.io
     
-    # 如果yum安装失败，尝试备用方法
-    if ! command -v containerd &> /dev/null; then
-        echo "yum安装失败，尝试备用安装方法..."
-        # 下载containerd二进制文件
-        CONTAINERD_VERSION="1.7.0"
-        curl -LO "https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz"
+    # 直接使用备用安装方法，避免Docker镜像源问题
+    echo "使用直接下载方式安装containerd..."
+    # 下载containerd二进制文件
+    CONTAINERD_VERSION="1.7.0"
+    echo "下载containerd v${CONTAINERD_VERSION}..."
+    
+    # 创建临时目录
+    mkdir -p /tmp/containerd-install
+    cd /tmp/containerd-install
+    
+    # 下载containerd
+    curl -LO "https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz"
+    
+    if [ -f "containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz" ]; then
+        echo "解压containerd..."
         tar xvf containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
+        
+        # 复制二进制文件
         cp bin/* /usr/local/bin/
-        rm -rf bin containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
+        
+        # 创建systemd服务文件
+        mkdir -p /usr/local/lib/systemd/system
+        cat > /usr/local/lib/systemd/system/containerd.service << EOF
+[Unit]
+Description=containerd container runtime
+Documentation=https://containerd.io
+After=network.target local-fs.target
+
+[Service]
+ExecStartPre=-/sbin/modprobe overlay
+ExecStart=/usr/local/bin/containerd
+
+Type=notify
+Delegate=yes
+KillMode=process
+Restart=always
+RestartSec=5
+# Having non-zero Limit*s causes performance problems due to accounting overhead
+# in the kernel. We recommend using cgroups to do container-local accounting.
+LimitNPROC=infinity
+LimitCORE=infinity
+LimitNOFILE=infinity
+# Comment TasksMax if your systemd version does not supports it.
+# Only systemd 226 and above support this version.
+TasksMax=infinity
+OOMScoreAdjust=-999
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        
+        echo "✓ containerd 手动安装成功"
+    else
+        echo "✗ containerd 下载失败"
+        exit 1
     fi
+    
+    # 清理临时目录
+    cd /
+    rm -rf /tmp/containerd-install
 fi
 
 # 启动containerd
@@ -167,6 +216,18 @@ if systemctl is-active --quiet containerd; then
 else
     echo "警告: containerd服务启动失败"
     systemctl status containerd --no-pager -l
+    
+    # 如果是手动安装的containerd，尝试直接启动
+    if [ -f "/usr/local/bin/containerd" ]; then
+        echo "尝试直接启动手动安装的containerd..."
+        /usr/local/bin/containerd &
+        sleep 3
+        if pgrep containerd > /dev/null; then
+            echo "✓ containerd 直接启动成功"
+        else
+            echo "✗ containerd 启动失败"
+        fi
+    fi
 fi
 
 # 8. 安装Kubernetes组件
