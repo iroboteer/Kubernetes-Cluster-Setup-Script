@@ -223,9 +223,9 @@ EOF
 fi
 
 # 启动containerd
-echo "启动containerd服务..."
+echo "启动containerd..."
 
-# 创建必要的目录（无论containerd是否已安装）
+# 创建必要的目录
 echo "创建containerd必要目录..."
 mkdir -p /etc/containerd
 mkdir -p /var/lib/containerd
@@ -237,13 +237,6 @@ if [ ! -f "/etc/containerd/config.toml" ]; then
     containerd config default > /etc/containerd/config.toml
 fi
 
-# 确保配置目录权限正确
-chmod 600 /etc/containerd/config.toml
-chown root:root /etc/containerd/config.toml
-
-systemctl daemon-reload
-systemctl enable containerd
-
 # 查找containerd二进制文件位置
 CONTAINERD_PATH=$(command -v containerd)
 if [ -z "$CONTAINERD_PATH" ]; then
@@ -253,31 +246,25 @@ fi
 
 echo "找到containerd: $CONTAINERD_PATH"
 
-# 检查二进制文件权限
-if [ ! -x "$CONTAINERD_PATH" ]; then
-    echo "设置containerd执行权限..."
-    chmod +x "$CONTAINERD_PATH"
-fi
-
-# 启动服务
-systemctl start containerd
-
-# 验证containerd是否正常运行
-if systemctl is-active --quiet containerd; then
-    echo "✓ containerd服务已启动"
+# 检查是否已经在运行
+if pgrep containerd > /dev/null; then
+    echo "✓ containerd 已在运行"
 else
-    echo "警告: containerd服务启动失败"
-    systemctl status containerd --no-pager -l
+    echo "启动containerd进程..."
+    # 直接启动containerd作为后台进程
+    nohup $CONTAINERD_PATH > /var/log/containerd.log 2>&1 &
     
-    # 尝试直接启动
-    echo "尝试直接启动containerd..."
-    $CONTAINERD_PATH &
-    sleep 3
+    # 等待启动
+    sleep 5
+    
+    # 验证是否启动成功
     if pgrep containerd > /dev/null; then
-        echo "✓ containerd 直接启动成功"
+        echo "✓ containerd 启动成功"
     else
-        echo "✗ containerd 启动失败，请检查日志"
-        journalctl -xeu containerd.service --no-pager -l
+        echo "✗ containerd 启动失败"
+        echo "查看日志:"
+        tail -20 /var/log/containerd.log
+        exit 1
     fi
 fi
 
