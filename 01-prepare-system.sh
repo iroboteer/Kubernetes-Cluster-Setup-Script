@@ -224,6 +224,23 @@ fi
 
 # 启动containerd
 echo "启动containerd服务..."
+
+# 创建必要的目录（无论containerd是否已安装）
+echo "创建containerd必要目录..."
+mkdir -p /etc/containerd
+mkdir -p /var/lib/containerd
+mkdir -p /run/containerd
+
+# 如果配置文件不存在，生成默认配置
+if [ ! -f "/etc/containerd/config.toml" ]; then
+    echo "生成containerd默认配置..."
+    containerd config default > /etc/containerd/config.toml
+fi
+
+# 确保配置目录权限正确
+chmod 600 /etc/containerd/config.toml
+chown root:root /etc/containerd/config.toml
+
 systemctl daemon-reload
 systemctl enable containerd
 
