@@ -52,7 +52,14 @@ dnf makecache
 
 # 6. 安装containerd
 echo "6. 安装containerd..."
-dnf install -y containerd || echo "containerd安装完成"
+# 安装工具插件
+dnf install -y dnf-plugins-core || echo "dnf-plugins-core安装完成"
+
+# 添加Docker官方仓库
+dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo || echo "Docker仓库添加完成"
+
+# 安装containerd.io包
+dnf install -y containerd.io || echo "containerd.io安装完成"
 
 # 7. 配置containerd
 echo "7. 配置containerd..."
