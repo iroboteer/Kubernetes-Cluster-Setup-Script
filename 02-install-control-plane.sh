@@ -110,7 +110,7 @@ create_kubeadm_config() {
     echo "使用Kubernetes版本: $K8S_VERSION"
     
     cat > kubeadm-config.yaml << EOF
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: ClusterConfiguration
 kubernetesVersion: $K8S_VERSION
 controlPlaneEndpoint: "$CONTROL_PLANE_IP:6443"
@@ -123,7 +123,7 @@ apiServer:
   - "localhost"
   - "127.0.0.1"
 ---
-apiVersion: kubeadm.k8s.io/v1beta3
+apiVersion: kubeadm.k8s.io/v1beta4
 kind: InitConfiguration
 nodeRegistration:
   criSocket: "unix:///var/run/containerd/containerd.sock"
