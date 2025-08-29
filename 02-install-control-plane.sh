@@ -81,14 +81,6 @@ echo "检测到本机IP: $MASTER_IP"
 read -p "请确认控制平面IP地址 [$MASTER_IP]: " CONFIRMED_IP
 MASTER_IP=${CONFIRMED_IP:-$MASTER_IP}
 
-# 获取Kubernetes版本
-get_k8s_version() {
-    # 使用固定的1.28版本
-    K8S_VERSION="1.28.0"
-    echo "使用Kubernetes版本: $K8S_VERSION"
-    echo "v$K8S_VERSION"
-}
-
 # 询问Pod网络CIDR
 read -p "请输入Pod网络CIDR [10.244.0.0/16]: " POD_CIDR
 POD_CIDR=${POD_CIDR:-10.244.0.0/16}
@@ -113,7 +105,7 @@ create_kubeadm_config() {
     local CONTROL_PLANE_IP=$1
     local POD_CIDR=$2
     local SERVICE_CIDR=$3
-    local K8S_VERSION=$(get_k8s_version)
+    local K8S_VERSION=1.33.4
     
     echo "使用Kubernetes版本: $K8S_VERSION"
     
