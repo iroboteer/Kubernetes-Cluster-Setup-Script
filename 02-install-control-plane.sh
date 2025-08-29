@@ -59,18 +59,19 @@ if ! check_kubeadm; then
     fi
 fi
 
-# 检查containerd是否已安装并运行
-if ! command -v containerd &> /dev/null; then
-    echo "错误: containerd未找到，请先运行系统环境准备脚本"
+# 检查containerd是否已安装
+if ! command -v containerd >/dev/null 2>&1; then
+    echo "错误: containerd未安装，请先安装containerd"
     echo "运行命令: ./01-prepare-system.sh"
     exit 1
 fi
 
-if ! systemctl is-active --quiet containerd; then
-    echo "错误: containerd服务未运行，请先启动containerd"
-    echo "运行命令: systemctl start containerd"
+# 检查containerd版本
+if ! containerd -v >/dev/null 2>&1; then
+    echo "错误: 无法获取containerd版本，请检查containerd安装状态"
     exit 1
 fi
+echo "检测到containerd版本: $(containerd -v)"
 
 # 获取本机IP地址
 MASTER_IP=$(hostname -I | awk '{print $1}')
