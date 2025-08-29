@@ -47,6 +47,7 @@ gpgkey=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/repodata/repomd.xml.key
 EOF
 
 # 清理缓存
+dnf remove kubelet kubeadm kubectl
 dnf clean all
 dnf makecache
 
@@ -74,14 +75,10 @@ systemctl enable containerd
 
 # 9. 安装Kubernetes组件
 echo "9. 安装Kubernetes组件..."
-dnf install -y kubelet kubeadm kubectl --disableexcludes=kubernetes || echo "Kubernetes组件安装完成"
+dnf install -y kubelet kubeadm kubectl || echo "Kubernetes组件安装完成"
 
-# 10. 启用kubelet
-echo "10. 启用kubelet..."
-systemctl enable kubelet || echo "kubelet已启用"
-
-# 11. 打印已安装的组件的版本信息
-echo "11. 显示安装的版本信息..."
+# 10. 打印已安装的组件的版本信息
+echo "10. 显示安装的版本信息..."
 echo "containerd版本:"
 containerd --version || echo "containerd版本信息获取失败"
 echo ""
