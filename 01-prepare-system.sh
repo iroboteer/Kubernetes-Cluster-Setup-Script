@@ -60,11 +60,10 @@ mkdir -p /etc/containerd
 containerd config default > /etc/containerd/config.toml || echo "containerd配置已生成"
 sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml || echo "containerd配置已更新"
 
-# 8. 启动containerd
-echo "8. 启动containerd..."
+# 8. 启用containerd
+echo "8. 启用containerd..."
 systemctl daemon-reload
 systemctl enable containerd
-systemctl start containerd || echo "containerd启动完成"
 
 # 9. 安装Kubernetes组件
 echo "9. 安装Kubernetes组件..."
