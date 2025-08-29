@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Kubernetes环境准备脚本
+# Kubernetes环境准备脚本 2025-08-29,安装1.33版本
 # 适用于CentOS/RHEL系统
 
 set -e
@@ -35,17 +35,18 @@ net.ipv4.ip_forward = 1
 EOF
 sysctl --system
 
-# 5. 配置阿里云Kubernetes镜像源
-echo "5. 配置阿里云Kubernetes镜像源..."
+# 5. 配置官方 Kubernetes 镜像源
+echo "5. 配置官方 Kubernetes 镜像源..."
 cat > /etc/yum.repos.d/kubernetes.repo << EOF
 [kubernetes]
-name=Kubernetes
-baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+name=Kubernetes v1.33 (official pkgs.k8s.io)
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/
 enabled=1
-gpgcheck=0
-repo_gpgcheck=0
-exclude=kubelet kubeadm kubectl
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/repodata/repomd.xml.key
 EOF
+
+
 
 # 6. 安装containerd
 echo "6. 安装containerd..."
@@ -61,15 +62,17 @@ sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.to
 echo "8. 启动containerd..."
 systemctl daemon-reload
 systemctl enable containerd
-systemctl start containerd
 
 # 9. 安装Kubernetes组件
 echo "9. 安装Kubernetes组件..."
 dnf install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
 
-# 10. 启用kubelet
-echo "10. 启用kubelet..."
-systemctl enable kubelet
+# 10. 打印已安装的组件的版本信息
+containerd --version
+kubelet --version
+kubeadm version
+kubectl version --client
+
 
 echo "=========================================="
 echo "Kubernetes环境准备完成！"
